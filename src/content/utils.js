@@ -352,7 +352,7 @@ npModUtils.stickyComment = commentId => {
 npModUtils.postSubmissionSticky = () => {
   const subreddit = npModUtils.getSubreddit();
 
-  return fetch(`/r/${subreddit}/wiki/npmodtools/submission_sticky.json`).then(res => res.json()).then(res => {
+  return npModUtils.fetch(`/r/${subreddit}/wiki/submission_sticky.json`).then(res => res.json()).then(res => {
     const sticky = res.data.content_md;
     return npModUtils.postComment(sticky);
   }).then(commentId => {
