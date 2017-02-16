@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "NP Mod Helper",
+  "description": "",
+  "version": "1.0",
+  "permissions": [
+    "https://*.reddit.com/",
+    "http://*.reddit.com/",
+    "cookies",
+    "identity"
+  ],
+  "content_scripts": [
+    {
+      "run_at": "document_end",
+      "matches": [
+        "https://*.reddit.com/*",
+        "http://*.reddit.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ],
+  "background": {
+    "scripts": [
+      "chrome.js"
+    ]
+  }
+}

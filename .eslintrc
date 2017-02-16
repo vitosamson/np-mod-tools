@@ -1,0 +1,15 @@
+{
+  "extends": "hexa1",
+  "rules": {
+    "no-console": [0]
+  },
+  "env": {
+    "browser": true
+  },
+  "globals": {
+    "chrome": true,
+  },
+  "parserOptions": {
+    "ecmaVersion": "2017"
+  }
+}
