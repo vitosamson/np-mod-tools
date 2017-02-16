@@ -205,6 +205,15 @@ npModUtils.postAlreadyApproved = () => {
 };
 
 /**
+ * Determines it the post has already been marked as RFE
+ * @return {boolean}
+ */
+npModUtils.postAlreadyRFEd = () => {
+  const flair = document.querySelector('.linkflairlabel');
+  return flair && flair.innerText.match(/RFE/);
+};
+
+/**
  * Sends a modmail message
  * @param  {string}  message           the message to send
  * @return {Promise}
