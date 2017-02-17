@@ -17,7 +17,7 @@
         "http://*.reddit.com/*"
       ],
       "js": [
-        "content.js"
+        "content.min.js"
       ]
     }
   ],

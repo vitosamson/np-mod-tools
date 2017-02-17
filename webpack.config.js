@@ -10,17 +10,16 @@ const plugins = [
   }),
 ];
 
-if (!isDevelopment) {
-  // uglifyjs doesn't know how to parse es2015 syntax yet... what year is it?
-  // plugins.push(new webpack.optimize.UglifyJsPlugin());
-}
+// the extension manifest points to content.min.js
+// rather than modifying the manifest based on env, we'll just name the dev file to .min
+const filename = isDevelopment ? 'content.min.js' : 'content.js';
 
 module.exports = {
   devtool: isDevelopment ? 'eval-source-map' : false,
   entry: './src/content/index.js',
   output: {
     path: path.resolve('./extension'),
-    filename: 'content.js',
+    filename,
   },
   module: {
     rules: [
