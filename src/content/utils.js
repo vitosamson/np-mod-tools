@@ -355,16 +355,12 @@ npModUtils.stickyComment = commentId => {
 };
 
 /**
- * Gets the submission sticky from the sub's wiki, then posts it as a distinguished sticky comment on the thread
+ * Posts a distinguished sticky comment
+ * @param  {string} body
  * @return {Promise}
  */
-npModUtils.postSubmissionSticky = () => {
-  const subreddit = npModUtils.getSubreddit();
-
-  return npModUtils.fetch(`/r/${subreddit}/wiki/submission_sticky.json`).then(res => res.json()).then(res => {
-    const sticky = res.data.content_md;
-    return npModUtils.postComment(sticky);
-  }).then(commentId => {
+npModUtils.postStickyComment = body => {
+  return npModUtils.postComment(body).then(commentId => {
     return npModUtils.stickyComment(commentId);
   }).then(res => res.json()).then(res => {
     const commentResponse = res.json.data.things[0].data;
@@ -373,5 +369,22 @@ npModUtils.postSubmissionSticky = () => {
   }).catch(err => {
     console.log(err);
     throw err;
+  });
+};
+
+/**
+ * Gets the submission sticky from the sub's wiki, then posts it as a distinguished sticky comment on the thread
+ * @return {Promise}
+ */
+npModUtils.postSubmissionSticky = () => {
+  const subreddit = npModUtils.getSubreddit();
+
+  return npModUtils.fetch(`https://oauth.reddit.com/r/${subreddit}/wiki/submission_sticky.json`, {
+    headers: {
+      Authorization: `Bearer ${npModUtils.token}`,
+    },
+  }).then(res => res.json()).then(res => {
+    const sticky = res.data.content_md;
+    return npModUtils.postStickyComment(sticky);
   });
 };

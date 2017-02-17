@@ -1710,16 +1710,12 @@ npModUtils.stickyComment = commentId => {
 };
 
 /**
- * Gets the submission sticky from the sub's wiki, then posts it as a distinguished sticky comment on the thread
+ * Posts a distinguished sticky comment
+ * @param  {string} body
  * @return {Promise}
  */
-npModUtils.postSubmissionSticky = () => {
-  const subreddit = npModUtils.getSubreddit();
-
-  return npModUtils.fetch(`/r/${subreddit}/wiki/submission_sticky.json`).then(res => res.json()).then(res => {
-    const sticky = res.data.content_md;
-    return npModUtils.postComment(sticky);
-  }).then(commentId => {
+npModUtils.postStickyComment = body => {
+  return npModUtils.postComment(body).then(commentId => {
     return npModUtils.stickyComment(commentId);
   }).then(res => res.json()).then(res => {
     const commentResponse = res.json.data.things[0].data;
@@ -1728,6 +1724,23 @@ npModUtils.postSubmissionSticky = () => {
   }).catch(err => {
     console.log(err);
     throw err;
+  });
+};
+
+/**
+ * Gets the submission sticky from the sub's wiki, then posts it as a distinguished sticky comment on the thread
+ * @return {Promise}
+ */
+npModUtils.postSubmissionSticky = () => {
+  const subreddit = npModUtils.getSubreddit();
+
+  return npModUtils.fetch(`https://oauth.reddit.com/r/${subreddit}/wiki/submission_sticky.json`, {
+    headers: {
+      Authorization: `Bearer ${npModUtils.token}`
+    }
+  }).then(res => res.json()).then(res => {
+    const sticky = res.data.content_md;
+    return npModUtils.postStickyComment(sticky);
   });
 };
 
@@ -21337,11 +21350,40 @@ var _utils2 = _interopRequireDefault(_utils);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+const getRuleLetters = reasons => {
+  return Object.keys(reasons).filter(key => !!reasons[key]).map(reason => reason.match(/\w:/)[0].substr(0, 1)).sort();
+};
+
+const createRejectionComment = reasons => {
+  let ruleLetters = getRuleLetters(reasons);
+  const multipleRules = ruleLetters.length > 1;
+
+  if (multipleRules) {
+    const lastLetter = ruleLetters[ruleLetters.length - 1];
+    ruleLetters = ruleLetters.slice(0, ruleLetters.length - 1).join(', ');
+    ruleLetters = `${ruleLetters} and ${lastLetter}`;
+  }
+
+  return `Hello there. I'm a mod in /r/NeutralPolitics.
+
+We appreciate your participation in the sub, but we did not approve this submission, because it doesn't conform to our [submission rules.](http://www.reddit.com/r/NeutralPolitics/wiki/guidelines#wiki_submission_rules)
+
+Specifically, rule${multipleRules ? 's' : ''} ${ruleLetters}.
+
+If you'd like to submit a reworked version of your post after [reviewing the guidelines,](http://www.reddit.com/r/NeutralPolitics/wiki/guidelines) we'd be happy to consider it.
+
+Thanks for understanding.
+
+* *Note: If you wish to discuss this topic under more relaxed submission rules, consider posting to our sister subreddit, /r/NeutralTalk.*
+`;
+};
+
 class Rejection extends _react.Component {
   constructor(props) {
     super(props);
     this.state = {
-      selectedReasons: {}
+      selectedReasons: {},
+      postComment: true
     };
     this.confirmRejection = this.confirmRejection.bind(this);
   }
@@ -21356,13 +21398,13 @@ class Rejection extends _react.Component {
 
   confirmRejection(e) {
     e.preventDefault();
-    const { selectedReasons } = this.state;
+    const { selectedReasons, postComment } = this.state;
     const { onReject } = this.props;
     const hasSelectedReasons = Object.keys(selectedReasons).some(key => !!selectedReasons[key]);
+    const rejectionComment = createRejectionComment(selectedReasons);
 
     if (hasSelectedReasons) {
-      const reasons = Object.keys(selectedReasons).filter(key => !!selectedReasons[key]);
-      const ruleLetters = reasons.map(reason => reason.match(/\w:/)[0].substr(0, 1)).sort();
+      const ruleLetters = getRuleLetters(selectedReasons);
       const flair = `Rejected: ${ruleLetters.join(', ')}`;
       const errors = [];
 
@@ -21370,14 +21412,21 @@ class Rejection extends _react.Component {
         errors.push('Could not flair post');
       }), _utils2.default.updateModmail(flair).catch(err => {
         errors.push('Could not update modmail');
-      })]).then(() => {
+      }), postComment ? _utils2.default.postStickyComment(rejectionComment) : null]).then(() => {
         onReject(errors.length ? errors : null);
+
+        if (!postComment) {
+          const textarea = document.querySelector('.commentarea textarea');
+          textarea.value = rejectionComment;
+          textarea.style.height = '440px';
+          textarea.focus();
+        }
       });
     }
   }
 
   render() {
-    const { selectedReasons } = this.state;
+    const { selectedReasons, postComment } = this.state;
     const { show, rules, onHide } = this.props;
 
     if (!show) return null;
@@ -21407,6 +21456,19 @@ class Rejection extends _react.Component {
         { className: 'error' },
         'This subreddit has no rules!'
       ),
+      _react2.default.createElement('input', {
+        type: 'checkbox',
+        checked: postComment,
+        onChange: () => this.setState({ postComment: !postComment }),
+        name: 'postComment',
+        id: 'postComment',
+        style: { marginRight: 5, marginTop: 10 }
+      }),
+      _react2.default.createElement(
+        'label',
+        { htmlFor: 'postComment' },
+        'Automatically post rejection comment'
+      ),
       _react2.default.createElement(
         'div',
         { style: { marginTop: 15 } },
@@ -21424,7 +21486,16 @@ class Rejection extends _react.Component {
       _react2.default.createElement(
         'div',
         { style: { marginTop: 5, color: '#98abba' } },
-        'After confirming rejection, the modmail thread will be updated and the post will be flaired.'
+        _react2.default.createElement(
+          'p',
+          null,
+          'After confirming rejection, the modmail thread will be updated, post will be flaired and a rejection comment wil be posted.'
+        ),
+        _react2.default.createElement(
+          'p',
+          null,
+          'If you choose not to automatically post the rejection comment, the comment area below will be filled out for further editing.'
+        )
       )
     );
   }

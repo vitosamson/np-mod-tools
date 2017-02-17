@@ -7,6 +7,7 @@ const scopes = [
   'modposts',
   'submit',
   'privatemessages',
+  'wikiread',
 ].join(' ');
 
 // bad token values sometimes get stored to localStorage

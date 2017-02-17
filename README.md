@@ -28,6 +28,7 @@ The first time the extension runs, it'll ask you to give it a number of permissi
   - **Access and manage modmail via mod.reddit.com** - for reading and responding to the new modmail
   - **Manage and assign flair in subreddits I moderate** - for flairing the post on approval/rejection/RFE
   - **Approve, remove, mark nsfw, and distinguish content in subreddits I moderate** - for distinguishing and stickying the reminder comment after approval
+  - **Read wiki pages through my account** - for accessing comment templates from the wiki
   - **Maintain this access indefinitely (or until manually revoked)** - so the extension doesn't have to ask you for permission every time it wants to do something
 
 ## Assumptions
