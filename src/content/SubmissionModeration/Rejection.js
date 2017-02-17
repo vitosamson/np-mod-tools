@@ -37,6 +37,7 @@ export default class Rejection extends Component {
     this.state = {
       selectedReasons: {},
       postComment: true,
+      sendModmail: true,
     };
     this.confirmRejection = this.confirmRejection.bind(this);
   }
@@ -51,7 +52,7 @@ export default class Rejection extends Component {
 
   confirmRejection(e) {
     e.preventDefault();
-    const { selectedReasons, postComment } = this.state;
+    const { selectedReasons, postComment, sendModmail } = this.state;
     const { onReject } = this.props;
     const hasSelectedReasons = Object.keys(selectedReasons).some(key => !!selectedReasons[key]);
     const rejectionComment = createRejectionComment(selectedReasons);
@@ -65,10 +66,12 @@ export default class Rejection extends Component {
         npModUtils.flairPost(flair).catch(err => {
           errors.push('Could not flair post');
         }),
-        npModUtils.updateModmail(flair).catch(err => {
+        sendModmail ? npModUtils.updateModmail(flair).catch(err => {
           errors.push('Could not update modmail');
-        }),
-        postComment ? npModUtils.postStickyComment(rejectionComment) : null,
+        }) : null,
+        postComment ? npModUtils.postStickyComment(rejectionComment).catch(err => {
+          errors.push('Could not post sticky comment');
+        }) : null,
       ]).then(() => {
         onReject(errors.length ? errors : null);
 
@@ -83,13 +86,19 @@ export default class Rejection extends Component {
   }
 
   render() {
-    const { selectedReasons, postComment } = this.state;
+    const { selectedReasons, postComment, sendModmail } = this.state;
     const { show, rules, onHide } = this.props;
 
     if (!show) return null;
 
     return (
       <div style={{ padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' }}>
+        { !rules.length &&
+          <div className="error">
+            This subreddit has no rules!
+          </div>
+        }
+
         { rules.map((rule, idx) =>
           <div key={idx} style={{ marginBottom: 5 }}>
             <input
@@ -104,33 +113,35 @@ export default class Rejection extends Component {
           </div>
         )}
 
-        { !rules.length &&
-          <div className="error">
-            This subreddit has no rules!
-          </div>
-        }
+        <div>
+          <input
+            type="checkbox"
+            checked={postComment}
+            onChange={() => this.setState({ postComment: !postComment })}
+            name="postComment"
+            id="postComment"
+            style={{ marginRight: 5, marginTop: 10 }}
+          />
+          <label htmlFor="postComment">Automatically post rejection comment</label>
+        </div>
 
-        <input
-          type="checkbox"
-          checked={postComment}
-          onChange={() => this.setState({ postComment: !postComment })}
-          name="postComment"
-          id="postComment"
-          style={{ marginRight: 5, marginTop: 10 }}
-        />
-
-        <label htmlFor="postComment">Automatically post rejection comment</label>
+        <div>
+          <input
+            type="checkbox"
+            checked={sendModmail}
+            onChange={() => this.setState({ sendModmail: !sendModmail })}
+            name="sendModmail"
+            id="sendModmail"
+            style={{ marginRight: 5, marginTop: 5 }}
+          />
+          <label htmlFor="sendModmail">Update modmail</label>
+        </div>
 
         <div style={{ marginTop: 15 }}>
           <a href="#" className="pretty-button neutral" onClick={onHide}>Cancel</a>
           <a href="#" className="pretty-button negative" onClick={this.confirmRejection}>
             Confirm rejection
           </a>
-        </div>
-
-        <div style={{ marginTop: 5, color: '#98abba' }}>
-          <p>After confirming rejection, the modmail thread will be updated, post will be flaired and a rejection comment wil be posted.</p>
-          <p>If you choose not to automatically post the rejection comment, the comment area below will be filled out for further editing.</p>
         </div>
       </div>
     );

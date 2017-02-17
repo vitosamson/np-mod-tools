@@ -23836,24 +23836,25 @@ class Approval extends _react.Component {
   constructor(props) {
     super(props);
     this.state = {
-      createStickyComment: true
+      createStickyComment: true,
+      sendModmail: true
     };
     this.approvePost = this.approvePost.bind(this);
   }
 
   approvePost() {
-    const { createStickyComment } = this.state;
+    const { createStickyComment, sendModmail } = this.state;
     const { onApprove } = this.props;
     const errors = [];
 
     _utils2.default.approvePost().then(() => {
       return Promise.all([_utils2.default.flairPost('').catch(err => {
         errors.push('Could not remove flair');
-      }), _utils2.default.updateModmail('Approved').catch(err => {
+      }), sendModmail ? _utils2.default.updateModmail('Approved').catch(err => {
         errors.push('Could not update modmail');
-      }), createStickyComment ? _utils2.default.postSubmissionSticky().catch(err => {
+      }) : null, createStickyComment ? _utils2.default.postSubmissionSticky().catch(err => {
         errors.push('Could not post sticky comment');
-      }) : Promise.resolve()]);
+      }) : null]);
     }).catch(err => {
       errors.push('Could not approve post');
     }).then(() => {
@@ -23863,25 +23864,46 @@ class Approval extends _react.Component {
 
   render() {
     const { show, onHide } = this.props;
-    const { createStickyComment } = this.state;
+    const { createStickyComment, sendModmail } = this.state;
 
     if (!show) return null;
 
     return _react2.default.createElement(
       'div',
       { style: { padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' } },
-      _react2.default.createElement('input', {
-        type: 'checkbox',
-        style: { marginRight: 5 },
-        checked: createStickyComment,
-        name: 'createStickyComment',
-        id: 'createStickyComment',
-        onChange: () => this.setState({ createStickyComment: !createStickyComment })
-      }),
       _react2.default.createElement(
-        'label',
-        { htmlFor: 'createStickyComment' },
-        'Add sticky rule reminder'
+        'div',
+        null,
+        _react2.default.createElement('input', {
+          type: 'checkbox',
+          style: { marginRight: 5 },
+          checked: createStickyComment,
+          name: 'createStickyComment',
+          id: 'createStickyComment',
+          onChange: () => this.setState({ createStickyComment: !createStickyComment })
+        }),
+        _react2.default.createElement(
+          'label',
+          { htmlFor: 'createStickyComment' },
+          'Add sticky rule reminder'
+        )
+      ),
+      _react2.default.createElement(
+        'div',
+        null,
+        _react2.default.createElement('input', {
+          type: 'checkbox',
+          style: { marginRight: 5, marginTop: 5 },
+          checked: sendModmail,
+          name: 'sendModmail',
+          id: 'sendModmail',
+          onChange: () => this.setState({ sendModmail: !sendModmail })
+        }),
+        _react2.default.createElement(
+          'label',
+          { htmlFor: 'sendModmail' },
+          'Update modmail'
+        )
       ),
       _react2.default.createElement(
         'div',
@@ -23896,11 +23918,6 @@ class Approval extends _react.Component {
           { className: 'pretty-button positive', onClick: this.approvePost, href: '#' },
           'Approve post'
         )
-      ),
-      _react2.default.createElement(
-        'div',
-        { style: { marginTop: 5, color: '#98abba' } },
-        'After confirming approval, the modmail thread will be updated and the flair will be removed.'
       )
     );
   }
@@ -24072,25 +24089,30 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 class RFE extends _react.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      sendModmail: true
+    };
     this.rfePost = this.rfePost.bind(this);
   }
 
   rfePost(e) {
     const { onRFE } = this.props;
+    const { sendModmail } = this.state;
     const errors = [];
     e.preventDefault();
 
     Promise.all([_utils2.default.flairPost('RFE').catch(err => {
       errors.push('Could not update flair');
-    }), _utils2.default.updateModmail('RFE').catch(err => {
+    }), sendModmail ? _utils2.default.updateModmail('RFE').catch(err => {
       errors.push('Could not update modmail');
-    })]).then(() => {
+    }) : null]).then(() => {
       onRFE(errors.length ? errors : null);
     });
   }
 
   render() {
     const { show, onHide } = this.props;
+    const { sendModmail } = this.state;
 
     if (!show) return null;
 
@@ -24098,19 +24120,35 @@ class RFE extends _react.Component {
       'div',
       { style: { padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' } },
       _react2.default.createElement(
-        'a',
-        { href: '#', className: 'pretty-button neutral', onClick: onHide },
-        'Cancel'
-      ),
-      _react2.default.createElement(
-        'a',
-        { href: '#', className: 'pretty-button positive', onClick: this.rfePost },
-        'Confirm RFE'
+        'div',
+        null,
+        _react2.default.createElement('input', {
+          type: 'checkbox',
+          checked: sendModmail,
+          onChange: () => this.setState({ sendModmail: !sendModmail }),
+          name: 'sendModmail',
+          id: 'sendModmail',
+          style: { marginRight: 5, marginTop: 10 }
+        }),
+        _react2.default.createElement(
+          'label',
+          { htmlFor: 'sendModmail' },
+          'Update modmail'
+        )
       ),
       _react2.default.createElement(
         'div',
-        { style: { marginTop: 5, color: '#98abba' } },
-        'After confirming RFE, the modmail thread and flair will be updated.'
+        { style: { marginTop: 15 } },
+        _react2.default.createElement(
+          'a',
+          { href: '#', className: 'pretty-button neutral', onClick: onHide },
+          'Cancel'
+        ),
+        _react2.default.createElement(
+          'a',
+          { href: '#', className: 'pretty-button positive', onClick: this.rfePost },
+          'Confirm RFE'
+        )
       )
     );
   }
@@ -24177,7 +24215,8 @@ class Rejection extends _react.Component {
     super(props);
     this.state = {
       selectedReasons: {},
-      postComment: true
+      postComment: true,
+      sendModmail: true
     };
     this.confirmRejection = this.confirmRejection.bind(this);
   }
@@ -24192,7 +24231,7 @@ class Rejection extends _react.Component {
 
   confirmRejection(e) {
     e.preventDefault();
-    const { selectedReasons, postComment } = this.state;
+    const { selectedReasons, postComment, sendModmail } = this.state;
     const { onReject } = this.props;
     const hasSelectedReasons = Object.keys(selectedReasons).some(key => !!selectedReasons[key]);
     const rejectionComment = createRejectionComment(selectedReasons);
@@ -24204,9 +24243,11 @@ class Rejection extends _react.Component {
 
       Promise.all([_utils2.default.flairPost(flair).catch(err => {
         errors.push('Could not flair post');
-      }), _utils2.default.updateModmail(flair).catch(err => {
+      }), sendModmail ? _utils2.default.updateModmail(flair).catch(err => {
         errors.push('Could not update modmail');
-      }), postComment ? _utils2.default.postStickyComment(rejectionComment) : null]).then(() => {
+      }) : null, postComment ? _utils2.default.postStickyComment(rejectionComment).catch(err => {
+        errors.push('Could not post sticky comment');
+      }) : null]).then(() => {
         onReject(errors.length ? errors : null);
 
         if (!postComment) {
@@ -24220,7 +24261,7 @@ class Rejection extends _react.Component {
   }
 
   render() {
-    const { selectedReasons, postComment } = this.state;
+    const { selectedReasons, postComment, sendModmail } = this.state;
     const { show, rules, onHide } = this.props;
 
     if (!show) return null;
@@ -24228,6 +24269,11 @@ class Rejection extends _react.Component {
     return _react2.default.createElement(
       'div',
       { style: { padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' } },
+      !rules.length && _react2.default.createElement(
+        'div',
+        { className: 'error' },
+        'This subreddit has no rules!'
+      ),
       rules.map((rule, idx) => _react2.default.createElement(
         'div',
         { key: idx, style: { marginBottom: 5 } },
@@ -24245,23 +24291,39 @@ class Rejection extends _react.Component {
           rule.short_name
         )
       )),
-      !rules.length && _react2.default.createElement(
-        'div',
-        { className: 'error' },
-        'This subreddit has no rules!'
-      ),
-      _react2.default.createElement('input', {
-        type: 'checkbox',
-        checked: postComment,
-        onChange: () => this.setState({ postComment: !postComment }),
-        name: 'postComment',
-        id: 'postComment',
-        style: { marginRight: 5, marginTop: 10 }
-      }),
       _react2.default.createElement(
-        'label',
-        { htmlFor: 'postComment' },
-        'Automatically post rejection comment'
+        'div',
+        null,
+        _react2.default.createElement('input', {
+          type: 'checkbox',
+          checked: postComment,
+          onChange: () => this.setState({ postComment: !postComment }),
+          name: 'postComment',
+          id: 'postComment',
+          style: { marginRight: 5, marginTop: 10 }
+        }),
+        _react2.default.createElement(
+          'label',
+          { htmlFor: 'postComment' },
+          'Automatically post rejection comment'
+        )
+      ),
+      _react2.default.createElement(
+        'div',
+        null,
+        _react2.default.createElement('input', {
+          type: 'checkbox',
+          checked: sendModmail,
+          onChange: () => this.setState({ sendModmail: !sendModmail }),
+          name: 'sendModmail',
+          id: 'sendModmail',
+          style: { marginRight: 5, marginTop: 5 }
+        }),
+        _react2.default.createElement(
+          'label',
+          { htmlFor: 'sendModmail' },
+          'Update modmail'
+        )
       ),
       _react2.default.createElement(
         'div',
@@ -24275,20 +24337,6 @@ class Rejection extends _react.Component {
           'a',
           { href: '#', className: 'pretty-button negative', onClick: this.confirmRejection },
           'Confirm rejection'
-        )
-      ),
-      _react2.default.createElement(
-        'div',
-        { style: { marginTop: 5, color: '#98abba' } },
-        _react2.default.createElement(
-          'p',
-          null,
-          'After confirming rejection, the modmail thread will be updated, post will be flaired and a rejection comment wil be posted.'
-        ),
-        _react2.default.createElement(
-          'p',
-          null,
-          'If you choose not to automatically post the rejection comment, the comment area below will be filled out for further editing.'
         )
       )
     );

@@ -6,12 +6,13 @@ export default class Approval extends Component {
     super(props);
     this.state = {
       createStickyComment: true,
+      sendModmail: true,
     };
     this.approvePost = this.approvePost.bind(this);
   }
 
   approvePost() {
-    const { createStickyComment } = this.state;
+    const { createStickyComment, sendModmail } = this.state;
     const { onApprove } = this.props;
     const errors = [];
 
@@ -20,12 +21,12 @@ export default class Approval extends Component {
         npModUtils.flairPost('').catch(err => {
           errors.push('Could not remove flair');
         }),
-        npModUtils.updateModmail('Approved').catch(err => {
+        sendModmail ? npModUtils.updateModmail('Approved').catch(err => {
           errors.push('Could not update modmail');
-        }),
+        }) : null,
         createStickyComment ? npModUtils.postSubmissionSticky().catch(err => {
           errors.push('Could not post sticky comment');
-        }) : Promise.resolve(),
+        }) : null,
       ]);
     }).catch(err => {
       errors.push('Could not approve post');
@@ -36,21 +37,35 @@ export default class Approval extends Component {
 
   render() {
     const { show, onHide } = this.props;
-    const { createStickyComment } = this.state;
+    const { createStickyComment, sendModmail } = this.state;
 
     if (!show) return null;
 
     return (
       <div style={{ padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' }}>
-        <input
-          type="checkbox"
-          style={{ marginRight: 5 }}
-          checked={createStickyComment}
-          name="createStickyComment"
-          id="createStickyComment"
-          onChange={() => this.setState({ createStickyComment: !createStickyComment })}
-        />
-        <label htmlFor="createStickyComment">Add sticky rule reminder</label>
+        <div>
+          <input
+            type="checkbox"
+            style={{ marginRight: 5 }}
+            checked={createStickyComment}
+            name="createStickyComment"
+            id="createStickyComment"
+            onChange={() => this.setState({ createStickyComment: !createStickyComment })}
+          />
+          <label htmlFor="createStickyComment">Add sticky rule reminder</label>
+        </div>
+
+        <div>
+          <input
+            type="checkbox"
+            style={{ marginRight: 5, marginTop: 5 }}
+            checked={sendModmail}
+            name="sendModmail"
+            id="sendModmail"
+            onChange={() => this.setState({ sendModmail: !sendModmail })}
+          />
+          <label htmlFor="sendModmail">Update modmail</label>
+        </div>
 
         <div style={{ marginTop: 10 }}>
           <a className="pretty-button neutral" onClick={onHide} href="#">
@@ -59,10 +74,6 @@ export default class Approval extends Component {
           <a className="pretty-button positive" onClick={this.approvePost} href="#">
             Approve post
           </a>
-        </div>
-
-        <div style={{ marginTop: 5, color: '#98abba' }}>
-          After confirming approval, the modmail thread will be updated and the flair will be removed.
         </div>
       </div>
     );
