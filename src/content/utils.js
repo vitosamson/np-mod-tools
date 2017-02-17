@@ -1,4 +1,9 @@
+import showdown from 'showdown';
 import { createStickyCommentMarkup } from './SubmissionModeration/StickyComment';
+
+const markdownConverter = new showdown.Converter({
+  simplifiedAutoLink: true,
+});
 
 const npModUtils = {
   token: '',
@@ -111,7 +116,7 @@ npModUtils.getModmailReplies = () => {
         return a.date.localeCompare(b.date);
       }).filter(reply => reply.author.name !== 'AutoModerator').map(reply => ({
         from: reply.author.name,
-        body: reply.bodyMarkdown,
+        body: npModUtils.markdownToHtml(reply.bodyMarkdown),
         created: reply.date,
         id: reply.id,
       }));
@@ -128,7 +133,7 @@ npModUtils.getModmailReplies = () => {
         a.data.created - b.data.created
       ).map(child => ({
         from: child.data.author,
-        body: child.data.body,
+        body: npModUtils.markdownToHtml(child.data.body),
         created: child.data.created_utc * 1000,
         id: child.data.id,
       }));
@@ -387,4 +392,27 @@ npModUtils.postSubmissionSticky = () => {
     const sticky = res.data.content_md;
     return npModUtils.postStickyComment(sticky);
   });
+};
+
+/**
+ * Converts reddit's markdown to html
+ * @param  {string} markdown the markdown returned from reddit
+ * @return {string}          the html markup
+ */
+npModUtils.markdownToHtml = markdown => {
+  try {
+    const html = markdownConverter.makeHtml(markdown);
+
+    // for new modmail, reddit returns the markdown wrapped in a div.md, which adds margins we don't want
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    if (div && div.childNodes[0] && div.childNodes[0].classList.contains('md')) {
+      return div.childNodes[0].innerHTML;
+    } else {
+      return html;
+    }
+  } catch (e) {
+    console.log(e);
+    return '';
+  }
 };

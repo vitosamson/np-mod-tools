@@ -48,12 +48,20 @@ export default class Modmail extends Component {
     return (
       <div style={{ padding: '10px 20px', border: '1px solid #ccc' }}>
         { replies.map(reply =>
-          <div key={reply.id} style={{ marginBottom: 2 }}>
+          <div key={reply.id} style={{ marginBottom: 8 }}>
             <a href={`/u/${reply.from}`}>{ reply.from }</a>
             <span style={{ marginLeft: 5, color: '#98abba' }}>
               { new Date(reply.created).toLocaleString() }
             </span>
-            <span style={{ marginLeft: 5 }}>{ reply.body }</span>
+            <div
+              style={{
+                paddingLeft: 8,
+                paddingTop: 4,
+              }}
+              dangerouslySetInnerHTML={{
+                __html: reply.body,
+              }}
+            />
           </div>
         )}
 
