@@ -1,30 +1,40 @@
-import React, { Component, PropTypes } from 'react';
-import npModUtils from '../utils';
+import { Component } from 'preact';
+import * as utils from '../utils';
 
-export default class Approval extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      createStickyComment: true,
-      sendModmail: true,
-    };
-    this.approvePost = this.approvePost.bind(this);
-  }
+interface Props {
+  show: boolean;
+  onHide: (e: Event) => any;
+  onApprove: (errors?: string[]) => any;
+}
 
-  approvePost() {
+interface State {
+  createStickyComment: boolean;
+  sendModmail: boolean;
+  loading: boolean;
+}
+
+export default class Approval extends Component<Props, State> {
+  state: State = {
+    createStickyComment: true,
+    sendModmail: true,
+    loading: false,
+  };
+
+  approvePost = () => {
     const { createStickyComment, sendModmail } = this.state;
     const { onApprove } = this.props;
-    const errors = [];
+    const errors: string[] = [];
+    this.setState({ loading: true });
 
-    npModUtils.approvePost().then(() => {
+    utils.approvePost().then(() => {
       return Promise.all([
-        npModUtils.flairPost('').catch(err => {
+        utils.flairPost('').catch(err => {
           errors.push('Could not remove flair');
         }),
-        sendModmail ? npModUtils.updateModmail('Approved').catch(err => {
+        sendModmail ? utils.updateModmail('Approved').catch(err => {
           errors.push('Could not update modmail');
         }) : null,
-        createStickyComment ? npModUtils.postSubmissionSticky().catch(err => {
+        createStickyComment ? utils.postSubmissionSticky().catch(err => {
           errors.push('Could not post sticky comment');
         }) : null,
       ]);
@@ -32,12 +42,13 @@ export default class Approval extends Component {
       errors.push('Could not approve post');
     }).then(() => {
       onApprove(errors.length ? errors : null);
+      this.setState({ loading: false });
     });
   }
 
   render() {
     const { show, onHide } = this.props;
-    const { createStickyComment, sendModmail } = this.state;
+    const { createStickyComment, sendModmail, loading } = this.state;
 
     if (!show) return null;
 
@@ -52,7 +63,7 @@ export default class Approval extends Component {
             id="createStickyComment"
             onChange={() => this.setState({ createStickyComment: !createStickyComment })}
           />
-          <label htmlFor="createStickyComment">Add sticky rule reminder</label>
+          <label for="createStickyComment">Add sticky rule reminder</label>
         </div>
 
         <div>
@@ -62,26 +73,20 @@ export default class Approval extends Component {
             checked={sendModmail}
             name="sendModmail"
             id="sendModmail"
-            onChange={() => this.setState({ sendModmail: !sendModmail })}
+            onChange={() => this.setState((state: State) => ({ sendModmail: !state.sendModmail }))}
           />
-          <label htmlFor="sendModmail">Update modmail</label>
+          <label for="sendModmail">Update modmail</label>
         </div>
 
         <div style={{ marginTop: 10 }}>
-          <a className="pretty-button neutral" onClick={onHide} href="#">
+          <a className="pretty-button neutral" onClick={onHide} href="#" disabled={loading}>
             Cancel
           </a>
-          <a className="pretty-button positive" onClick={this.approvePost} href="#">
-            Approve post
+          <a className="pretty-button positive" onClick={this.approvePost} href="#" disabled={loading}>
+            { !loading ? 'Approve post' : 'Approving...' }
           </a>
         </div>
       </div>
     );
   }
 }
-
-Approval.propTypes = {
-  show: PropTypes.bool,
-  onHide: PropTypes.func.isRequired,
-  onApprove: PropTypes.func.isRequired,
-};

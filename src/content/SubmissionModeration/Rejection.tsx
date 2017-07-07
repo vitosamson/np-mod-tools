@@ -1,22 +1,43 @@
-import React, { Component, PropTypes } from 'react';
-import npModUtils from '../utils';
+import { Component } from 'preact';
+import * as utils from '../utils';
 
-const getRuleLetters = reasons => {
+interface Props {
+  show: boolean;
+  rules: utils.SubredditRule[];
+  onHide: (e: Event) => any;
+  onReject: (errors?: string[]) => any;
+}
+
+interface SelectedReasons {
+  [reason: string]: boolean;
+}
+
+interface State {
+  selectedReasons: SelectedReasons;
+  postComment: boolean;
+  sendModmail: boolean;
+  loading: boolean;
+}
+
+const getRuleLetters = (reasons: SelectedReasons) => {
   return Object.keys(reasons).filter(key => !!reasons[key]).map(reason =>
     reason.match(/\w:/)[0].substr(0, 1)
   ).sort();
 };
 
-const createRejectionComment = reasons => {
-  let ruleLetters = getRuleLetters(reasons);
+const createRejectionComment = (reasons: SelectedReasons) => {
+  let ruleLetters: string | string[] = getRuleLetters(reasons);
   const multipleRules = ruleLetters.length > 1;
 
   if (multipleRules) {
     const lastLetter = ruleLetters[ruleLetters.length - 1];
     ruleLetters = ruleLetters.slice(0, ruleLetters.length - 1).join(', ');
     ruleLetters = `${ruleLetters} and ${lastLetter}`;
+  } else {
+    ruleLetters = ruleLetters.join('');
   }
 
+  // TODO: externalize this - wiki?
   return `Hello there. I'm a mod in /r/NeutralPolitics.
 
 We appreciate your participation in the sub, but we did not approve this submission, because it doesn't conform to our [submission rules.](http://www.reddit.com/r/NeutralPolitics/wiki/guidelines#wiki_submission_rules)
@@ -31,26 +52,24 @@ Thanks for understanding.
 `;
 };
 
-export default class Rejection extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      selectedReasons: {},
-      postComment: true,
-      sendModmail: true,
-    };
-    this.confirmRejection = this.confirmRejection.bind(this);
-  }
+export default class Rejection extends Component<Props, State> {
+  state: State = {
+    selectedReasons: {},
+    postComment: true,
+    sendModmail: true,
+    loading: false,
+  };
 
-  toggleSelectedReason(rule) {
+  toggleSelectedReason = (rule: string) => {
     this.setState({
-      selectedReasons: Object.assign({}, this.state.selectedReasons, {
+      selectedReasons: {
+        ...this.state.selectedReasons,
         [rule]: !this.state.selectedReasons[rule],
-      }),
+      },
     });
   }
 
-  confirmRejection(e) {
+  confirmRejection = (e: Event) => {
     e.preventDefault();
     const { selectedReasons, postComment, sendModmail } = this.state;
     const { onReject } = this.props;
@@ -59,24 +78,27 @@ export default class Rejection extends Component {
 
     if (hasSelectedReasons) {
       const ruleLetters = getRuleLetters(selectedReasons);
-      const flair = `Rejected: ${ruleLetters.join(', ')}`;
-      const errors = [];
+      const flair = `${ruleLetters.join(', ')}`;
+      const modmail = `Rejected: ${flair}`;
+      const errors: string[] = [];
+      this.setState({ loading: true });
 
       Promise.all([
-        npModUtils.flairPost(flair).catch(err => {
+        utils.flairPost(flair).catch(err => {
           errors.push('Could not flair post');
         }),
-        sendModmail ? npModUtils.updateModmail(flair).catch(err => {
+        sendModmail ? utils.updateModmail(modmail).catch(err => {
           errors.push('Could not update modmail');
         }) : null,
-        postComment ? npModUtils.postStickyComment(rejectionComment).catch(err => {
+        postComment ? utils.postStickyComment(rejectionComment).catch(err => {
           errors.push('Could not post sticky comment');
         }) : null,
       ]).then(() => {
         onReject(errors.length ? errors : null);
+        this.setState({ loading: false });
 
         if (!postComment) {
-          const textarea = document.querySelector('.commentarea textarea');
+          const textarea = document.querySelector('.commentarea textarea') as HTMLTextAreaElement;
           textarea.value = rejectionComment;
           textarea.style.height = '440px';
           textarea.focus();
@@ -86,7 +108,7 @@ export default class Rejection extends Component {
   }
 
   render() {
-    const { selectedReasons, postComment, sendModmail } = this.state;
+    const { selectedReasons, postComment, sendModmail, loading } = this.state;
     const { show, rules, onHide } = this.props;
 
     if (!show) return null;
@@ -100,7 +122,7 @@ export default class Rejection extends Component {
         }
 
         { rules.map((rule, idx) =>
-          <div key={idx} style={{ marginBottom: 5 }}>
+          <div style={{ marginBottom: 5 }}>
             <input
               type="checkbox"
               checked={selectedReasons[rule.short_name] === true}
@@ -109,7 +131,7 @@ export default class Rejection extends Component {
               id={rule.short_name}
               style={{ marginRight: 5 }}
             />
-            <label htmlFor={rule.short_name}>{ rule.short_name }</label>
+            <label for={rule.short_name}>{ rule.short_name }</label>
           </div>
         )}
 
@@ -122,7 +144,7 @@ export default class Rejection extends Component {
             id="postComment"
             style={{ marginRight: 5, marginTop: 10 }}
           />
-          <label htmlFor="postComment">Automatically post rejection comment</label>
+          <label for="postComment">Automatically post rejection comment</label>
         </div>
 
         <div>
@@ -134,23 +156,18 @@ export default class Rejection extends Component {
             id="sendModmail"
             style={{ marginRight: 5, marginTop: 5 }}
           />
-          <label htmlFor="sendModmail">Update modmail</label>
+          <label for="sendModmail">Update modmail</label>
         </div>
 
         <div style={{ marginTop: 15 }}>
-          <a href="#" className="pretty-button neutral" onClick={onHide}>Cancel</a>
-          <a href="#" className="pretty-button negative" onClick={this.confirmRejection}>
-            Confirm rejection
+          <a href="#" className="pretty-button neutral" onClick={onHide} disabled={loading}>
+            Cancel
+          </a>
+          <a href="#" className="pretty-button negative" onClick={this.confirmRejection} disabled={loading}>
+            { !loading ? 'Confirm rejection' : 'Rejecting...' }
           </a>
         </div>
       </div>
     );
   }
 }
-
-Rejection.propTypes = {
-  show: PropTypes.bool,
-  rules: PropTypes.arrayOf(PropTypes.object).isRequired,
-  onHide: PropTypes.func.isRequired,
-  onReject: PropTypes.func.isRequired,
-};

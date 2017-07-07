@@ -1,10 +1,30 @@
-/* eslint camelcase: [0] */
+import { render } from 'preact';
 
-import React, { PropTypes } from 'react';
-import { render } from 'react-dom';
+interface CommentResponse {
+  name: string;
+  author: string;
+  body_html: string;
+  subreddit: string;
+  subreddit_id: string;
+}
 
-export default function StickyComment(props) {
-  const { name, author, body_html, subreddit, subreddit_id } = props.commentResponse;
+export function renderStickyComment(commentResponse: CommentResponse) {
+  // some hackery to convert the sanitized html (&gt; etc) returned from the reddit api
+  // into regular tags for use in dangerouslySetInnerHTML
+  const hackDiv = document.createElement('div');
+  hackDiv.innerHTML = commentResponse.body_html;
+  commentResponse.body_html = hackDiv.childNodes[0].nodeValue;
+
+  const container = document.createElement('div');
+  (document.querySelector('.sitetable.nestedlisting') as any).prepend(container);
+  render(
+    <StickyComment commentResponse={commentResponse} />,
+    container
+  );
+}
+
+function StickyComment({ commentResponse }: { commentResponse: CommentResponse }) {
+  const { name, author, body_html, subreddit, subreddit_id } = commentResponse;
   const outerClassName = `thing id-${name} stickied noncollapsed comment new-comment ut-thing`;
 
   return (
@@ -45,24 +65,4 @@ export default function StickyComment(props) {
       </div>
     </div>
   );
-}
-
-StickyComment.propTypes = {
-  commentResponse: PropTypes.object,
-};
-
-export function createStickyCommentMarkup(commentResponse) {
-  const div = document.createElement('div');
-
-  // some hackery to convert the sanitized html (&gt; etc) returned from the reddit api
-  // into regular tags for use in dangerouslySetInnerHTML
-  div.innerHTML = commentResponse.body_html;
-  commentResponse.body_html = div.childNodes[0].nodeValue;
-
-  render(
-    <StickyComment commentResponse={commentResponse} />,
-    div
-  );
-
-  return div.firstChild;
 }

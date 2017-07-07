@@ -1,6 +1,13 @@
+
+/**
+ * TODO: create two separate reddit API apps: one for chrome, one for firefox,
+ * since we can only specify one redirect uri per token and each browser extension will have a different url
+ * in identity.getRedirectURL/identity.launchWebAuthFlow
+ */
 const tokenUrl = 'https://www.reddit.com/api/v1/access_token';
-const basicAuth = `Basic ${btoa('733edtKvu6rRUw:')}`;
-const redirectUri = 'https://ekjilggllejdalflhilgaacpaoadfcap.chromiumapp.org/index.html';
+const clientId='733edtKvu6rRUw';
+const basicAuth = `Basic ${btoa(`${clientId}:`)}`;
+const redirectUri = chrome.identity.getRedirectURL();
 const scopes = [
   'modflair',
   'modmail',
@@ -8,7 +15,7 @@ const scopes = [
   'submit',
   'privatemessages',
   'wikiread',
-].join(' ');
+].join('%20');
 
 // bad token values sometimes get stored to localStorage
 const checkValidToken = token => token && token !== 'undefined' && token !== 'null';
@@ -38,8 +45,18 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       return true;
     }
 
+    const authPageUrl = `
+      https://www.reddit.com/api/v1/authorize?
+      client_id=${clientId}&
+      response_type=code&
+      redirect_uri=${redirectUri}&
+      scope=${scopes}&
+      state=whatever&
+      duration=permanent
+    `.replace(/\s/g, '');
+
     chrome.identity.launchWebAuthFlow({
-      url: `https://www.reddit.com/api/v1/authorize?client_id=733edtKvu6rRUw&response_type=code&redirect_uri=${redirectUri}&scope=${scopes}&state=foo&duration=permanent`,
+      url: authPageUrl,
       interactive: true,
     }, url => {
       const code = new URLSearchParams(url).get('code');

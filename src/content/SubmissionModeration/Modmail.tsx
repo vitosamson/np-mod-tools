@@ -1,47 +1,55 @@
-import React, { Component, PropTypes } from 'react';
-import npModUtils from '../utils';
+import { Component } from 'preact';
+import * as utils from '../utils';
 
-export default class Modmail extends Component {
-  constructor(props) {
-    super(props);
+interface Props {
+  show: boolean;
+  onHide: (e: Event) => any;
+  onSend: (errors?: string[]) => any;
+  replies: utils.NormalizedModmailMessage[];
+}
 
-    this.state = {
-      message: '',
-      error: false,
-      replies: [],
-    };
-    this.setMessage = this.setMessage.bind(this);
-    this.sendMessage = this.sendMessage.bind(this);
-  }
+interface State {
+  message: string;
+  error: boolean;
+  loading: boolean;
+}
 
-  setMessage(e) {
+export default class Modmail extends Component<Props, State> {
+  state: State = {
+    message: '',
+    error: false,
+    loading: false,
+  };
+
+  setMessage = (e: KeyboardEvent) => {
     this.setState({
-      message: e.target.value,
+      message: (e.target as HTMLInputElement).value,
     });
   }
 
-  sendMessage(e) {
+  sendMessage = (e: Event) => {
     e.preventDefault();
     const { onSend } = this.props;
     const { message } = this.state;
 
     if (!message) return;
+    this.setState({ loading: true });
 
-    npModUtils.updateModmail(message).then(() => {
-      this.setState({
+    utils.updateModmail(message).then(() => {
+      this.setState(() => ({
         message: '',
         error: false,
-      }, onSend);
+      }), onSend);
     }).catch(err => {
-      this.setState({
-        error: true,
-      });
+      this.setState({ error: true });
+    }).then(() => {
+      this.setState({ loading: false });
     });
   }
 
   render() {
     const { show, onHide, replies } = this.props;
-    const { message, error } = this.state;
+    const { message, error, loading } = this.state;
 
     if (!show) return null;
 
@@ -77,14 +85,14 @@ export default class Modmail extends Component {
           }}
           rows={5}
         />
-        <a className="pretty-button neutral" onClick={onHide} href="#">
+        <a className="pretty-button neutral" onClick={onHide} href="#" disabled={loading}>
           Close
         </a>
-        <a className="pretty-button positive" onClick={this.sendMessage} href="#">
-          Send message
+        <a className="pretty-button positive" onClick={this.sendMessage} href="#" disabled={loading}>
+          { !loading ? 'Send message' : 'Sending...' }
         </a>
 
-        <a href={npModUtils.getModmailMessageLink()} style={{ float: 'right', marginTop: 5 }}>
+        <a href={utils.getModmailMessageLink()} style={{ float: 'right', marginTop: 5 }}>
           Full modmail thread
         </a>
 
@@ -95,10 +103,3 @@ export default class Modmail extends Component {
     );
   }
 }
-
-Modmail.propTypes = {
-  show: PropTypes.bool,
-  onHide: PropTypes.func.isRequired,
-  onSend: PropTypes.func.isRequired,
-  replies: PropTypes.array.isRequired,
-};

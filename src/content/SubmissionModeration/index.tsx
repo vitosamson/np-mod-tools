@@ -1,66 +1,73 @@
-import React, { Component } from 'react';
-
+import { Component } from 'preact';
 import Approval from './Approval';
 import RFE from './RFE';
 import Rejection from './Rejection';
 import Modmail from './Modmail';
-import npModUtils from '../utils';
+import * as utils from '../utils';
 
-export default class SubmissionModeration extends Component {
-  constructor(props) {
-    super(props);
+interface Feedback {
+  type: string;
+  message: string;
+}
 
-    this.state = {
-      rules: [],
-      showApproval: false,
-      showRFE: false,
-      showRejection: false,
-      showModmail: false,
-      feedback: [],
-      modmailReplies: [],
-    };
+interface State {
+  rules: utils.SubredditRule[];
+  showApproval: boolean;
+  showRFE: boolean;
+  showRejection: boolean;
+  showModmail: boolean;
+  feedback: Feedback[];
+  modmailReplies: utils.NormalizedModmailMessage[];
+}
 
-    this.toggleRejection = this.toggleRejection.bind(this);
-    this.handleRejection = this.handleRejection.bind(this);
-    this.toggleApproval = this.toggleApproval.bind(this);
-    this.handleApproval = this.handleApproval.bind(this);
-    this.toggleSendModmail = this.toggleSendModmail.bind(this);
-    this.handleSentModmail = this.handleSentModmail.bind(this);
-    this.toggleRFE = this.toggleRFE.bind(this);
-    this.handleRFE = this.handleRFE.bind(this);
-  }
+export default class SubmissionModeration extends Component<{}, State> {
+  state: State = {
+    rules: [],
+    showApproval: false,
+    showRFE: false,
+    showRejection: false,
+    showModmail: false,
+    feedback: [],
+    modmailReplies: [],
+  };
 
   componentDidMount() {
-    npModUtils.getAccessToken().then(() => {
+    utils.getAccessToken().then(() => {
       this.getModmailReplies();
-      npModUtils.getRules().then(rules => {
+      utils.getRules().then(rules => {
         this.setState({ rules });
-      }).catch(() => {
-        console.log('could not get rules');
+      }).catch(err => {
+        console.error('could not get rules', err);
       });
     });
   }
 
   getModmailReplies() {
-    npModUtils.getModmailReplies().then(replies => {
+    utils.getModmailReplies().then(modmailReplies => {
+      this.setState({ modmailReplies });
+    }).catch(err => {
+      console.error('could not get modmail replies', err);
       this.setState({
-        modmailReplies: replies,
+        feedback: [
+          ...this.state.feedback,
+          {
+            type: 'error',
+            message: 'Could not fetch modmail messages',
+          },
+        ],
       });
-    }).catch(() => {
-      console.log('could not get modmail replies');
     });
   }
 
-  toggleRejection(e) {
-    e.preventDefault();
-    e.stopPropagation();
+  toggleRejection = (e: Event) => {
+    if (e) e.preventDefault();
     this.setState({
       showRejection: !this.state.showRejection,
     });
   }
 
-  handleRejection(errors) {
-    if (errors) {
+  handleRejection = (errors?: string[]) => {
+    if (errors && errors.length) {
       this.setState({
         feedback: errors.map(err => ({
           type: 'error',
@@ -68,6 +75,7 @@ export default class SubmissionModeration extends Component {
         })),
       });
     } else {
+      this.getModmailReplies();
       this.setState({
         feedback: [{
           type: 'success',
@@ -75,19 +83,18 @@ export default class SubmissionModeration extends Component {
         }],
         showRejection: false,
       });
-      this.getModmailReplies();
     }
   }
 
-  toggleApproval(e) {
+  toggleApproval = (e?: Event) => {
     if (e) e.preventDefault();
     this.setState({
       showApproval: !this.state.showApproval,
     });
   }
 
-  handleApproval(errors) {
-    if (errors) {
+  handleApproval = (errors?: string[]) => {
+    if (errors && errors.length) {
       this.setState({
         feedback: errors.map(err => ({
           type: 'error',
@@ -106,26 +113,26 @@ export default class SubmissionModeration extends Component {
     }
   }
 
-  toggleSendModmail(e) {
+  toggleModmail = (e?: Event) => {
     if (e) e.preventDefault();
     this.setState({
       showModmail: !this.state.showModmail,
     });
   }
 
-  handleSentModmail() {
+  handleSentModmail = () => {
     this.getModmailReplies();
   }
 
-  toggleRFE(e) {
-    e.preventDefault();
+  toggleRFE = (e?: Event) => {
+    if (e) e.preventDefault();
     this.setState({
       showRFE: !this.state.showRFE,
     });
   }
 
-  handleRFE(errors) {
-    if (errors) {
+  handleRFE = (errors?: string[]) => {
+    if (errors && errors.length) {
       this.setState({
         feedback: errors.map(err => ({
           type: 'error',
@@ -145,11 +152,11 @@ export default class SubmissionModeration extends Component {
   }
 
   render() {
-    const { showRejection, rules, showModmail, showApproval, feedback, modmailReplies, showRFE } = this.state;
-    const rejected = npModUtils.postAlreadyRejected();
-    const approved = npModUtils.postAlreadyApproved();
-    const RFEd = npModUtils.postAlreadyRFEd();
-    const modmailMessageLink = npModUtils.getModmailMessageLink();
+    const { showApproval, showRFE, showRejection, showModmail, rules, modmailReplies, feedback } = this.state;
+    const rejected = utils.postAlreadyRejected();
+    const approved = utils.postAlreadyApproved();
+    const RFEd = utils.postAlreadyRFEd();
+    const modmailMessageLink = utils.getModmailMessageLink();
 
     return (
       <div style={{ marginTop: 5 }}>
@@ -157,13 +164,12 @@ export default class SubmissionModeration extends Component {
 
         { !approved && <a href="#" className="pretty-button positive" onClick={this.toggleApproval}>Approve</a> }
         { (!approved && !RFEd) && <a href="#" className="pretty-button neutral" onClick={this.toggleRFE}>RFE</a> }
-
-        { !rejected &&
-          <a href="#" className="pretty-button negative" onClick={this.toggleRejection}>Reject</a>
-        }
+        { !rejected && <a href="#" className="pretty-button negative" onClick={this.toggleRejection}>Reject</a> }
 
         { modmailMessageLink &&
-          <a href="#" className="pretty-button" onClick={this.toggleSendModmail}>Modmail</a>
+          <a href="#" className="pretty-button" onClick={this.toggleModmail}>
+            Modmail [{ modmailReplies && modmailReplies.length || '0' }]
+          </a>
         }
 
         { !modmailMessageLink &&
@@ -185,26 +191,23 @@ export default class SubmissionModeration extends Component {
         />
 
         <Rejection
-          show={!rejected && showRejection}
-          rules={rules}
+          show={showRejection}
           onHide={this.toggleRejection}
           onReject={this.handleRejection}
+          rules={rules}
         />
 
         <Modmail
           show={showModmail}
-          onHide={this.toggleSendModmail}
+          onHide={this.toggleModmail}
           onSend={this.handleSentModmail}
           replies={modmailReplies}
         />
 
-        { feedback.map((f, idx) =>
+        { feedback.map(f =>
           <div
-            key={idx}
             style={{
               color: f.type === 'success' ? 'green' : 'red',
-              marginBottom: 5,
-              marginLeft: 5,
             }}
           >
             { f.message }

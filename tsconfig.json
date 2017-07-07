@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es2015",
+    "allowJs": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "module": "commonjs",
+    "jsx": "react",
+    "jsxFactory": "preact.h",
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "lib": [
+      "dom",
+      "es5",
+      "es2015",
+      "es2016"
+    ]
+  },
+  "include": [
+    "./src/content",
+    "chrome"
+  ]
+}

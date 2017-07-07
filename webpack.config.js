@@ -1,5 +1,7 @@
 const path = require('path');
+const fs = require('fs');
 const webpack = require('webpack');
+const BabiliPlugin = require('babili-webpack-plugin');
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 const plugins = [
@@ -8,26 +10,40 @@ const plugins = [
       NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'production'),
     },
   }),
+  new webpack.ProvidePlugin({
+    preact: 'preact',
+  }),
 ];
 
-// the extension manifest points to content.min.js
-// rather than modifying the manifest based on env, we'll just name the dev file to .min
-const filename = isDevelopment ? 'content.min.js' : 'content.js';
+if (!isDevelopment) {
+  plugins.push(new BabiliPlugin());
+}
+
+// copy the background script to the extension folder after webpack finishes bundling the content scripts
+plugins.push(function() {
+  this.plugin('done', () => {
+    const backgroundScript = fs.readFileSync(path.resolve('./src/background/background.js'));
+    fs.writeFileSync(path.resolve('./extension/background.js'), backgroundScript);
+  });
+});
 
 module.exports = {
-  devtool: isDevelopment ? 'eval-source-map' : false,
-  entry: './src/content/index.js',
+  devtool: isDevelopment ? 'source-map' : false,
+  entry: './src/content/index.tsx',
   output: {
     path: path.resolve('./extension'),
-    filename,
+    filename: 'content.js',
   },
   module: {
     rules: [
       {
-        test: /\.js$/,
-        use: 'babel-loader',
+        use: 'awesome-typescript-loader',
+        exclude: /node_modules/,
       },
     ],
   },
   plugins,
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.json'],
+  },
 };
