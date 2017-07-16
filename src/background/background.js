@@ -1,11 +1,5 @@
-
-/**
- * TODO: create two separate reddit API apps: one for chrome, one for firefox,
- * since we can only specify one redirect uri per token and each browser extension will have a different url
- * in identity.getRedirectURL/identity.launchWebAuthFlow
- */
 const tokenUrl = 'https://www.reddit.com/api/v1/access_token';
-const clientId='733edtKvu6rRUw';
+const clientId = '__CLIENT_ID__'; // this is replaced during the build process. each browser gets a unique client ID
 const basicAuth = `Basic ${btoa(`${clientId}:`)}`;
 const redirectUri = chrome.identity.getRedirectURL();
 const scopes = [

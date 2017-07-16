@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+const { execSync } = require('child_process');
+
+const apps = {
+  chrome: 'ylxIEK6yp5qu2g',
+  firefox: 'q-foghzcyIqNHA',
+};
+
+Object.keys(apps).map(browser => {
+  execSync(`NODE_ENV=production BROWSER=${browser} CLIENT_ID=${apps[browser]} webpack`, {
+    stdio: [0, 1, 2],
+  });
+});

@@ -41,8 +41,12 @@ The extension makes a number of assumptions which makes it pretty much useful on
 
 ## Building
 
-`yarn install` (or `npm install`)
+First install dependencies via `yarn install` (or `npm install`)
 
-then run `./build.sh`
+### Production
+`./build-extension` will produce a .zip file for each browser.
 
-then in Chrome go to `chrome://extensions`, click "Load unpacked extension..." and select the `extension` directory in this repo.
+### Development
+`NODE_ENV=development webpack --watch`
+
+In Chrome go to `chrome://extensions`, click "Load unpacked extension..." and select the `extension` directory in this repo.
