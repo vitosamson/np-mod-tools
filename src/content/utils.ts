@@ -250,6 +250,7 @@ export function flairPost(flairText: string) {
 
 /**
  * Determines if the post has already been rejected by checking if it has the Rejected flair
+ * @todo this no longer works since the post is now just flaired with the rule letters, not "Rejected"
  * @return {boolean}
  */
 export function postAlreadyRejected() {
@@ -312,6 +313,18 @@ export function approvePost() {
   return makeOauthCall('https://oauth.reddit.com/api/approve', 'POST', form, {
     'content-type': formContentType,
   }).then(markPostApproved);
+}
+
+/**
+ * Removes the post from the modqueue
+ */
+export function removePost() {
+  const form = new URLSearchParams();
+  form.set('id', getSubmissionId());
+
+  return makeOauthCall('https://oauth.reddit.com/api/remove', 'POST', form, {
+    'content-type': formContentType,
+  });
 }
 
 /**

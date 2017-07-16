@@ -16,6 +16,7 @@ interface State {
   selectedReasons: SelectedReasons;
   postComment: boolean;
   sendModmail: boolean;
+  removeFromQueue: boolean;
   loading: boolean;
 }
 
@@ -57,6 +58,7 @@ export default class Rejection extends Component<Props, State> {
     selectedReasons: {},
     postComment: true,
     sendModmail: true,
+    removeFromQueue: true,
     loading: false,
   };
 
@@ -71,7 +73,7 @@ export default class Rejection extends Component<Props, State> {
 
   confirmRejection = (e: Event) => {
     e.preventDefault();
-    const { selectedReasons, postComment, sendModmail } = this.state;
+    const { selectedReasons, postComment, sendModmail, removeFromQueue } = this.state;
     const { onReject } = this.props;
     const hasSelectedReasons = Object.keys(selectedReasons).some(key => !!selectedReasons[key]);
     const rejectionComment = createRejectionComment(selectedReasons);
@@ -93,6 +95,9 @@ export default class Rejection extends Component<Props, State> {
         postComment ? utils.postStickyComment(rejectionComment).catch(err => {
           errors.push('Could not post sticky comment');
         }) : null,
+        removeFromQueue ? utils.removePost().catch(err => {
+          errors.push('Could not remove post from queue');
+        }) : null,
       ]).then(() => {
         onReject(errors.length ? errors : null);
         this.setState({ loading: false });
@@ -108,7 +113,7 @@ export default class Rejection extends Component<Props, State> {
   }
 
   render() {
-    const { selectedReasons, postComment, sendModmail, loading } = this.state;
+    const { selectedReasons, postComment, sendModmail, removeFromQueue, loading } = this.state;
     const { show, rules, onHide } = this.props;
 
     if (!show) return null;
@@ -144,7 +149,19 @@ export default class Rejection extends Component<Props, State> {
             id="postComment"
             style={{ marginRight: 5, marginTop: 10 }}
           />
-          <label for="postComment">Automatically post rejection comment</label>
+          <label for="postComment">Post rejection comment</label>
+        </div>
+
+        <div>
+          <input
+            type="checkbox"
+            checked={removeFromQueue}
+            onChange={() => this.setState({ removeFromQueue: !removeFromQueue })}
+            name="removeFromQueue"
+            id="removeFromQueue"
+            style={{ marginRight: 5, marginTop: 5 }}
+          />
+          <label for="removeFromQueue">Remove post from queue</label>
         </div>
 
         <div>
