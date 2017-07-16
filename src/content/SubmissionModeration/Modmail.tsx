@@ -15,16 +15,29 @@ interface State {
 }
 
 export default class Modmail extends Component<Props, State> {
+  textarea: HTMLElement;
   state: State = {
     message: '',
     error: false,
     loading: false,
   };
 
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.show && !prevProps.show && this.textarea) {
+      this.textarea.focus();
+    }
+  }
+
   setMessage = (e: KeyboardEvent) => {
     this.setState({
       message: (e.target as HTMLInputElement).value,
     });
+  }
+
+  handleKeyboardSubmit = (e: KeyboardEvent) => {
+    if (e.keyCode === 13 && e.metaKey) {
+      this.sendMessage(e);
+    }
   }
 
   sendMessage = (e: Event) => {
@@ -75,7 +88,8 @@ export default class Modmail extends Component<Props, State> {
 
         <textarea
           value={message}
-          onChange={this.setMessage}
+          onInput={this.setMessage}
+          onKeyDown={this.handleKeyboardSubmit}
           style={{
             width: '100%',
             maxWidth: '100%',
@@ -84,6 +98,7 @@ export default class Modmail extends Component<Props, State> {
             marginTop: 10,
           }}
           rows={5}
+          ref={el => (this.textarea = (el as HTMLElement))}
         />
         <a className="pretty-button neutral" onClick={onHide} href="#" disabled={loading}>
           Close
