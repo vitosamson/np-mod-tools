@@ -35,7 +35,7 @@ export default class Modmail extends Component<Props, State> {
   }
 
   handleKeyboardSubmit = (e: KeyboardEvent) => {
-    if (e.keyCode === 13 && e.metaKey) {
+    if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) {
       this.sendMessage(e);
     }
   }
