@@ -321,6 +321,7 @@ export function approvePost() {
 export function removePost() {
   const form = new URLSearchParams();
   form.set('id', getSubmissionId());
+  form.set('spam', 'false');
 
   return makeOauthCall('https://oauth.reddit.com/api/remove', 'POST', form, {
     'content-type': formContentType,
