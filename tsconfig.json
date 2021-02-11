@@ -5,19 +5,11 @@
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "module": "commonjs",
-    "jsx": "react",
-    "jsxFactory": "preact.h",
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
-    "lib": [
-      "dom",
-      "es5",
-      "es2015",
-      "es2016"
-    ]
+    "lib": ["dom", "es5", "es2015", "es2016"]
   },
-  "include": [
-    "./src/content",
-    "chrome"
-  ]
+  "include": ["./src/content", "chrome"]
 }

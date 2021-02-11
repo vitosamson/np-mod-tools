@@ -30,13 +30,19 @@ export function fetch(input: RequestInfo, init?: RequestInit) {
 /**
  * Make an oauth authorized reddit api call
  */
-export function makeOauthCall(url: string, method = 'GET', payload?: any, headers?: object) {
+export function makeOauthCall(
+  url: string,
+  method = 'GET',
+  payload?: any,
+  headers?: object
+) {
   return fetch(url, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
       ...headers,
     },
+    credentials: 'same-origin',
     body: payload,
   });
 }
@@ -84,26 +90,33 @@ export function getSubreddit() {
  */
 export function getModmailMessageLink() {
   if (modmailMessageLink) return modmailMessageLink;
-  const oldModmailPattern = 'a[href^="https://www.reddit.com/message/messages"]';
+  const oldModmailPattern =
+    'a[href^="https://www.reddit.com/message/messages"]';
   const newModmailPattern = 'a[href^="https://mod.reddit.com"]';
-  const trackbackComment = Array.from(document.querySelectorAll('.nestedlisting .comment')).find(c =>
-    !!c.querySelector(oldModmailPattern) || !!c.querySelector(newModmailPattern)
+  const trackbackComment = Array.from(
+    document.querySelectorAll('.nestedlisting .comment')
+  ).find(
+    c =>
+      !!c.querySelector(oldModmailPattern) ||
+      !!c.querySelector(newModmailPattern)
   );
-  let trackbackLink;
+  let trackbackLink: HTMLElement;
 
   if (!trackbackComment) return '';
 
   /* tslint:disable:no-conditional-assignment */
   if ((trackbackLink = trackbackComment.querySelector(oldModmailPattern))) {
     useNewModmail = false;
-  } else if ((trackbackLink = trackbackComment.querySelector(newModmailPattern))) {
+  } else if (
+    (trackbackLink = trackbackComment.querySelector(newModmailPattern))
+  ) {
     useNewModmail = true;
   } else {
     return null;
   }
   /* tslint:enable:no-conditional-assignment */
 
-  modmailMessageLink = (trackbackLink as HTMLElement).innerText;
+  modmailMessageLink = trackbackLink.innerText;
   return modmailMessageLink;
 }
 
@@ -140,11 +153,14 @@ interface OldModmailMessage {
     created: number;
     created_utc: number;
     id: string;
-    replies: string | { // this may be an empty string if there are no replies - seems to be a reddit bug
-      data: {
-        children: OldModmailMessage[];
-      };
-    };
+    replies:
+      | string
+      | {
+          // this may be an empty string if there are no replies - seems to be a reddit bug
+          data: {
+            children: OldModmailMessage[];
+          };
+        };
   };
 }
 
@@ -168,38 +184,46 @@ export function getModmailReplies(): Promise<NormalizedModmailMessage[]> {
   const messageId = getModmailMessageId();
 
   if (useNewModmail) {
-    return makeOauthCall(`https://oauth.reddit.com/api/mod/conversations/${messageId}`).then(res =>
-      res.json()
-    ).then((res: NewModmailResponse) => {
-      const replies = Object.keys(res.messages).map(id => res.messages[id]).sort((a, b) => {
-        return a.date.localeCompare(b.date);
-      }).filter(reply => reply.author.name !== 'AutoModerator').map(reply => ({
-        from: reply.author.name,
-        body: markdownToHtml(reply.bodyMarkdown),
-        created: new Date(reply.date),
-        id: reply.id,
-      }));
-      return replies;
-    });
-  } else {
-    return makeOauthCall(`https://oauth.reddit.com/message/messages/${messageId}`).then(res =>
-      res.json()
-    ).then((res: OldModmailResponse) => {
-      const automodMessage = res.data.children[0].data;
-      if (typeof automodMessage.replies === 'string') {
-        return [];
-      } else {
-        const replies = automodMessage.replies.data.children.sort((a, b) =>
-          a.data.created - b.data.created
-        ).map(child => ({
-          from: child.data.author,
-          body: markdownToHtml(child.data.body),
-          created: new Date(child.data.created_utc * 1000),
-          id: child.data.id,
-        }));
+    return makeOauthCall(
+      `https://oauth.reddit.com/api/mod/conversations/${messageId}`
+    )
+      .then(res => res.json())
+      .then((res: NewModmailResponse) => {
+        const replies = Object.keys(res.messages)
+          .map(id => res.messages[id])
+          .sort((a, b) => {
+            return a.date.localeCompare(b.date);
+          })
+          .filter(reply => reply.author.name !== 'AutoModerator')
+          .map(reply => ({
+            from: reply.author.name,
+            body: markdownToHtml(reply.bodyMarkdown),
+            created: new Date(reply.date),
+            id: reply.id,
+          }));
         return replies;
-      }
-    });
+      });
+  } else {
+    return makeOauthCall(
+      `https://oauth.reddit.com/message/messages/${messageId}`
+    )
+      .then(res => res.json())
+      .then((res: OldModmailResponse) => {
+        const automodMessage = res.data.children[0].data;
+        if (typeof automodMessage.replies === 'string') {
+          return [];
+        } else {
+          const replies = automodMessage.replies.data.children
+            .sort((a, b) => a.data.created - b.data.created)
+            .map(child => ({
+              from: child.data.author,
+              body: markdownToHtml(child.data.body),
+              created: new Date(child.data.created_utc * 1000),
+              id: child.data.id,
+            }));
+          return replies;
+        }
+      });
   }
 }
 
@@ -220,7 +244,9 @@ export function updateDisplayedFlair(flairText: string) {
   if (!flairEl) {
     flairEl = document.createElement('span');
     flairEl.className = 'linkflairlabel';
-    document.querySelector('.entry .title a').insertAdjacentElement('afterend', flairEl);
+    document
+      .querySelector('.entry .title a')
+      .insertAdjacentElement('afterend', flairEl);
   }
 
   (flairEl as HTMLElement).innerText = flairText;
@@ -237,15 +263,22 @@ export function flairPost(flairText: string) {
   form.set('link', getSubmissionId());
   form.set('text', flairText);
 
-  return makeOauthCall(`https://oauth.reddit.com/r/${sub}/api/flair`, 'POST', form, {
-    'content-type': formContentType,
-  }).then(res => res.json()).then(res => {
-    if (!res.success) {
-      throw new Error();
+  return makeOauthCall(
+    `https://oauth.reddit.com/r/${sub}/api/flair`,
+    'POST',
+    form,
+    {
+      'content-type': formContentType,
     }
+  )
+    .then(res => res.json())
+    .then(res => {
+      if (!res.success) {
+        throw new Error();
+      }
 
-    updateDisplayedFlair(flairText);
-  });
+      updateDisplayedFlair(flairText);
+    });
 }
 
 /**
@@ -263,7 +296,9 @@ export function postAlreadyRejected() {
  * @return {boolean}
  */
 export function postAlreadyApproved() {
-  const approveButton = document.querySelector('.link [data-event-action="approve"]');
+  const approveButton = document.querySelector(
+    '.link [data-event-action="approve"]'
+  );
   return !approveButton;
 }
 
@@ -335,7 +370,9 @@ export function removePost() {
  *  - removes the `spam` class from the post body so it's not red
  */
 export function markPostApproved() {
-  const approveButton = document.querySelector('.link [data-event-action="approve"]');
+  const approveButton = document.querySelector(
+    '.link [data-event-action="approve"]'
+  );
   if (approveButton) {
     approveButton.remove();
   }
@@ -349,7 +386,9 @@ export function markPostApproved() {
   const bodyWrapper = document.querySelector('.thing.link.spam');
   bodyWrapper.classList.remove('spam');
 
-  const removedNotice = document.querySelector('.thing.link li[title^="removed at"]');
+  const removedNotice = document.querySelector(
+    '.thing.link li[title^="removed at"]'
+  );
   if (removedNotice) {
     removedNotice.remove();
   }
@@ -369,12 +408,14 @@ export interface SubredditRule {
 export function getRules(kind: RuleKind = 'link') {
   const sub = getSubreddit();
 
-  return fetch(`https://reddit.com/r/${sub}/about/rules.json`).then(res =>
-    res.json()
-  ).then((res: { rules: SubredditRule[] }) => {
-    const rules = res.rules.filter(rule => rule.kind === kind);
-    return rules;
-  });
+  return fetch(`https://reddit.com/r/${sub}/about/rules.json`, {
+    mode: 'no-cors',
+  })
+    .then(res => res.json())
+    .then((res: { rules: SubredditRule[] }) => {
+      const rules = res.rules.filter(rule => rule.kind === kind);
+      return rules;
+    });
 }
 
 /**
@@ -391,9 +432,11 @@ export function postComment(content: string) {
 
   return makeOauthCall('https://oauth.reddit.com/api/comment', 'POST', form, {
     'content-type': formContentType,
-  }).then(res => res.json()).then(res => {
-    return res.json.data.things[0].data.name;
-  });
+  })
+    .then(res => res.json())
+    .then(res => {
+      return res.json.data.things[0].data.name;
+    });
 }
 
 /**
@@ -408,9 +451,14 @@ export function stickyComment(commentId: string) {
   form.set('sticky', 'true');
   form.set('api_type', 'json');
 
-  return makeOauthCall('https://oauth.reddit.com/api/distinguish', 'POST', form, {
-    'content-type': formContentType,
-  });
+  return makeOauthCall(
+    'https://oauth.reddit.com/api/distinguish',
+    'POST',
+    form,
+    {
+      'content-type': formContentType,
+    }
+  );
 }
 
 /**
@@ -419,15 +467,19 @@ export function stickyComment(commentId: string) {
  * @return {Promise}
  */
 export function postStickyComment(body: string) {
-  return postComment(body).then(commentId => {
-    return stickyComment(commentId);
-  }).then(res => res.json()).then(res => {
-    const commentResponse = res.json.data.things[0].data;
-    renderStickyComment(commentResponse);
-  }).catch(err => {
-    console.log(err);
-    throw err;
-  });
+  return postComment(body)
+    .then(commentId => {
+      return stickyComment(commentId);
+    })
+    .then(res => res.json())
+    .then(res => {
+      const commentResponse = res.json.data.things[0].data;
+      renderStickyComment(commentResponse);
+    })
+    .catch(err => {
+      console.log(err);
+      throw err;
+    });
 }
 
 /**
@@ -437,12 +489,14 @@ export function postStickyComment(body: string) {
 export function postSubmissionSticky() {
   const sub = getSubreddit();
 
-  return makeOauthCall(`https://oauth.reddit.com/r/${sub}/wiki/submission_sticky.json`).then(res =>
-    res.json()
-  ).then(res => {
-    const sticky = res.data.content_md;
-    return postStickyComment(sticky);
-  });
+  return makeOauthCall(
+    `https://oauth.reddit.com/r/${sub}/wiki/submission_sticky.json`
+  )
+    .then(res => res.json())
+    .then(res => {
+      const sticky = res.data.content_md;
+      return postStickyComment(sticky);
+    });
 }
 
 /**
@@ -470,4 +524,16 @@ export function markdownToHtml(markdown: string) {
     console.log(e);
     return '';
   }
+}
+
+export function isMod() {
+  return document.body.classList.contains('moderator');
+}
+
+export function isCommentsPage() {
+  return document.body.classList.contains('comments-page');
+}
+
+export function isSubmissionsPage() {
+  return document.body.classList.contains('listing-page');
 }

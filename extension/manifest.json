@@ -13,19 +13,12 @@
   "content_scripts": [
     {
       "run_at": "document_end",
-      "matches": [
-        "https://*.reddit.com/*",
-        "http://*.reddit.com/*"
-      ],
-      "js": [
-        "content.js"
-      ]
+      "matches": ["https://*.reddit.com/*", "http://*.reddit.com/*"],
+      "js": ["content.js"]
     }
   ],
   "background": {
-    "scripts": [
-      "background.js"
-    ]
+    "scripts": ["background.js"]
   },
   "icons": {
     "128": "icon_128.png"

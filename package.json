@@ -15,7 +15,7 @@
   "homepage": "https://github.com/vitosamson/np-mod-tools",
   "dependencies": {
     "marked": "^0.3.6",
-    "preact": "^8.1.0"
+    "preact": "^10.5.12"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.47",
@@ -24,7 +24,7 @@
     "babili-webpack-plugin": "^0.1.2",
     "tslint": "^5.5.0",
     "tslint-react": "^3.0.0",
-    "typescript": "2.3.4",
+    "typescript": "^4.1.5",
     "webpack": "^3.1.0"
   },
   "scripts": {

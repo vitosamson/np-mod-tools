@@ -1,4 +1,5 @@
 import { Component } from 'preact';
+
 import * as utils from '../utils';
 
 interface Props {
@@ -28,17 +29,17 @@ export default class Modmail extends Component<Props, State> {
     }
   }
 
-  setMessage = (e: KeyboardEvent) => {
+  setMessage = (message: string) => {
     this.setState({
-      message: (e.target as HTMLInputElement).value,
+      message,
     });
-  }
+  };
 
   handleKeyboardSubmit = (e: KeyboardEvent) => {
     if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) {
       this.sendMessage(e);
     }
-  }
+  };
 
   sendMessage = (e: Event) => {
     e.preventDefault();
@@ -48,17 +49,24 @@ export default class Modmail extends Component<Props, State> {
     if (!message) return;
     this.setState({ loading: true });
 
-    utils.updateModmail(message).then(() => {
-      this.setState(() => ({
-        message: '',
-        error: false,
-      }), onSend);
-    }).catch(err => {
-      this.setState({ error: true });
-    }).then(() => {
-      this.setState({ loading: false });
-    });
-  }
+    utils
+      .updateModmail(message)
+      .then(() => {
+        this.setState(
+          () => ({
+            message: '',
+            error: false,
+          }),
+          onSend
+        );
+      })
+      .catch(err => {
+        this.setState({ error: true });
+      })
+      .then(() => {
+        this.setState({ loading: false });
+      });
+  };
 
   render() {
     const { show, onHide, replies } = this.props;
@@ -68,11 +76,11 @@ export default class Modmail extends Component<Props, State> {
 
     return (
       <div style={{ padding: '10px 20px', border: '1px solid #ccc' }}>
-        { replies.map(reply =>
+        {replies.map(reply => (
           <div key={reply.id} style={{ marginBottom: 8 }}>
-            <a href={`/u/${reply.from}`}>{ reply.from }</a>
+            <a href={`/u/${reply.from}`}>{reply.from}</a>
             <span style={{ marginLeft: 5, color: '#98abba' }}>
-              { new Date(reply.created).toLocaleString() }
+              {new Date(reply.created).toLocaleString()}
             </span>
             <div
               style={{
@@ -84,11 +92,11 @@ export default class Modmail extends Component<Props, State> {
               }}
             />
           </div>
-        )}
+        ))}
 
         <textarea
           value={message}
-          onInput={this.setMessage}
+          onInput={evt => this.setMessage(evt.currentTarget.value)}
           onKeyDown={this.handleKeyboardSubmit}
           style={{
             width: '100%',
@@ -98,22 +106,37 @@ export default class Modmail extends Component<Props, State> {
             marginTop: 10,
           }}
           rows={5}
-          ref={el => (this.textarea = (el as HTMLElement))}
+          ref={el => (this.textarea = el as HTMLElement)}
         />
-        <a className="pretty-button neutral" onClick={onHide} href="#" disabled={loading}>
+        <a
+          className="pretty-button neutral"
+          onClick={onHide}
+          href="#"
+          disabled={loading}
+        >
           Close
         </a>
-        <a className="pretty-button positive" onClick={this.sendMessage} href="#" disabled={loading}>
-          { !loading ? 'Send message' : 'Sending...' }
+        <a
+          className="pretty-button positive"
+          onClick={this.sendMessage}
+          href="#"
+          disabled={loading}
+        >
+          {!loading ? 'Send message' : 'Sending...'}
         </a>
 
-        <a href={utils.getModmailMessageLink()} style={{ float: 'right', marginTop: 5 }}>
+        <a
+          href={utils.getModmailMessageLink()}
+          style={{ float: 'right', marginTop: 5 }}
+        >
           Full modmail thread
         </a>
 
-        { error &&
-          <div className="error">There was an error sending the message, please try again.</div>
-        }
+        {error && (
+          <div className="error">
+            There was an error sending the message, please try again.
+          </div>
+        )}
       </div>
     );
   }
