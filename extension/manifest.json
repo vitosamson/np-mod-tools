@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "NP Mod Helper",
-  "description": "",
-  "version": "1.4",
+  "description": "A browser extension for expediting moderation in the NeutralVerse.",
+  "version": "1.6",
   "permissions": [
     "https://*.reddit.com/",
     "http://*.reddit.com/",
