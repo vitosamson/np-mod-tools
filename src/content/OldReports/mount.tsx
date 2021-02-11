@@ -32,7 +32,7 @@ function mountComments() {
     }
 
     try {
-      const res = await fetch(`${permalink}.json`);
+      const res = await fetch(`https://reddit.com/${permalink}.json`);
       const json = await res.json();
       const commentData = json[1].data.children[0].data;
       const userReports: [string, number][] =
@@ -76,7 +76,7 @@ function mountSubmissions() {
     }
 
     try {
-      const res = await fetch(`${permalink}.json`);
+      const res = await fetch(`https://reddit.com/${permalink}.json`);
       const json = await res.json();
       const submissionData = json[0].data.children[0].data;
       const userReports: [string, number][] =
