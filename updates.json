@@ -9,6 +9,10 @@
         {
           "version": "1.6.1",
           "update_link": "https://github.com/vitosamson/np-mod-tools/releases/download/1.6.1/np_mod_helper-1.6.1-fx.xpi"
+        },
+        {
+          "version": "1.6.2",
+          "update_link": "https://github.com/vitosamson/np-mod-tools/releases/download/1.6.2/np_mod_helper-1.6.2-fx.xpi"
         }
       ]
     }
