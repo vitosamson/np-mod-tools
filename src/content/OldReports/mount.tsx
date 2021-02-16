@@ -134,7 +134,11 @@ function mountSubmissions() {
 function createContainerElement(parentElement: HTMLElement) {
   const entry = parentElement.querySelector('.entry');
   const div = document.createElement('div');
-  div.style.backgroundColor = '#f6e69f';
+  const isNightMode = document.body.classList.contains('res-nightmode');
+  div.style.backgroundColor = isNightMode
+    ? 'rgb(119, 111, 74)'
+    : 'rgb(246, 230, 159)';
+  div.style.color = isNightMode ? '#e3e3e3' : '#000000';
   div.style.padding = '6px 8px';
   div.style.fontSize = '1.1em';
   div.style.maxWidth = '74em';
