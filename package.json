@@ -1,6 +1,6 @@
 {
   "name": "np-mod-tools",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "moderation tools for /r/NeutralPolitics",
   "main": "index.js",
   "license": "MIT",
