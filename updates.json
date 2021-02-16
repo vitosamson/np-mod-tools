@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "{1b21583d-ab03-4fc3-b5fa-fbfda9fe3e53}": {
+      "updates": [
+        {
+          "version": "1.6",
+          "update_link": "https://github.com/vitosamson/np-mod-tools/releases/download/1.6/np_mod_helper-1.6-fx.xpi"
+        }
+      ]
+    }
+  }
+}
