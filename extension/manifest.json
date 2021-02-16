@@ -6,7 +6,6 @@
   "permissions": [
     "https://*.reddit.com/",
     "http://*.reddit.com/",
-    "cookies",
     "identity",
     "storage"
   ],
