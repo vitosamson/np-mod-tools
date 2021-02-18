@@ -1,8 +1,9 @@
 import { useState } from 'preact/hooks';
+import { ModReport, UserReport } from '../types';
 
 interface Props {
-  userReports: [string, number][];
-  modReports: [string, string][];
+  userReports: UserReport[];
+  modReports: ModReport[];
 }
 
 export default function OldReports({ userReports, modReports }: Props) {

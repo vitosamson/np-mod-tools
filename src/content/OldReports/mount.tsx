@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import OldReports from './OldReports';
 import { isMod, isCommentsPage, isSubmissionsPage } from '../utils';
+import { ThingData } from '../types';
 
 export default function mountOldReports() {
   if (!isMod()) {
@@ -34,10 +35,14 @@ async function mountComments() {
     try {
       const json = await fetchData(permalink);
       const commentData = json[1].data.children[0].data;
-      const userReports: [string, number][] =
-        commentData.user_reports_dismissed || [];
-      const modReports: [string, string][] =
-        commentData.mod_reports_dismissed || [];
+      const userReports =
+        (commentData.ignore_reports
+          ? commentData.user_reports
+          : commentData.user_reports_dismissed) || [];
+      const modReports =
+        (commentData.ignore_reports
+          ? commentData.mod_reports
+          : commentData.mod_reports_dismissed) || [];
 
       if (!userReports.length && !modReports.length) {
         return;
@@ -65,10 +70,8 @@ async function mountComments() {
   try {
     const json = await fetchData(submissionPermalink);
     const submissionData = json[0].data.children[0].data;
-    const userReports: [string, number][] =
-      submissionData.user_reports_dismissed || [];
-    const modReports: [string, string][] =
-      submissionData.mod_reports_dismissed || [];
+    const userReports = submissionData.user_reports_dismissed || [];
+    const modReports = submissionData.mod_reports_dismissed || [];
 
     if (!userReports.length && !modReports.length) {
       return;
@@ -110,10 +113,8 @@ function mountSubmissions() {
     try {
       const json = await fetchData(permalink);
       const submissionData = json[0].data.children[0].data;
-      const userReports: [string, number][] =
-        submissionData.user_reports_dismissed || [];
-      const modReports: [string, string][] =
-        submissionData.mod_reports_dismissed || [];
+      const userReports = submissionData.user_reports_dismissed || [];
+      const modReports = submissionData.mod_reports_dismissed || [];
 
       if (!userReports.length && !modReports.length) {
         return;
@@ -146,7 +147,9 @@ function createContainerElement(parentElement: HTMLElement) {
   return div;
 }
 
-async function fetchData(permalink: string) {
+async function fetchData(
+  permalink: string
+): Promise<Array<{ data: { children: Array<{ data: ThingData }> } }>> {
   const res = await fetch(`https://www.reddit.com/${permalink}.json`, {
     credentials: 'same-origin',
     mode: 'no-cors',
