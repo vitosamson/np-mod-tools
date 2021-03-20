@@ -30,12 +30,7 @@ export function fetch(input: RequestInfo, init?: RequestInit) {
 /**
  * Make an oauth authorized reddit api call
  */
-export function makeOauthCall(
-  url: string,
-  method = 'GET',
-  payload?: any,
-  headers?: object
-) {
+export function makeOauthCall(url: string, method = 'GET', payload?: any, headers?: object) {
   return fetch(url, {
     method,
     headers: {
@@ -90,15 +85,10 @@ export function getSubreddit() {
  */
 export function getModmailMessageLink() {
   if (modmailMessageLink) return modmailMessageLink;
-  const oldModmailPattern =
-    'a[href^="https://www.reddit.com/message/messages"]';
+  const oldModmailPattern = 'a[href^="https://www.reddit.com/message/messages"]';
   const newModmailPattern = 'a[href^="https://mod.reddit.com"]';
-  const trackbackComment = Array.from(
-    document.querySelectorAll('.nestedlisting .comment')
-  ).find(
-    c =>
-      !!c.querySelector(oldModmailPattern) ||
-      !!c.querySelector(newModmailPattern)
+  const trackbackComment = Array.from(document.querySelectorAll('.nestedlisting .comment')).find(
+    c => !!c.querySelector(oldModmailPattern) || !!c.querySelector(newModmailPattern)
   );
   let trackbackLink: HTMLElement;
 
@@ -107,9 +97,7 @@ export function getModmailMessageLink() {
   /* tslint:disable:no-conditional-assignment */
   if ((trackbackLink = trackbackComment.querySelector(oldModmailPattern))) {
     useNewModmail = false;
-  } else if (
-    (trackbackLink = trackbackComment.querySelector(newModmailPattern))
-  ) {
+  } else if ((trackbackLink = trackbackComment.querySelector(newModmailPattern))) {
     useNewModmail = true;
   } else {
     return null;
@@ -184,9 +172,7 @@ export function getModmailReplies(): Promise<NormalizedModmailMessage[]> {
   const messageId = getModmailMessageId();
 
   if (useNewModmail) {
-    return makeOauthCall(
-      `https://oauth.reddit.com/api/mod/conversations/${messageId}`
-    )
+    return makeOauthCall(`https://oauth.reddit.com/api/mod/conversations/${messageId}`)
       .then(res => res.json())
       .then((res: NewModmailResponse) => {
         const replies = Object.keys(res.messages)
@@ -204,9 +190,7 @@ export function getModmailReplies(): Promise<NormalizedModmailMessage[]> {
         return replies;
       });
   } else {
-    return makeOauthCall(
-      `https://oauth.reddit.com/message/messages/${messageId}`
-    )
+    return makeOauthCall(`https://oauth.reddit.com/message/messages/${messageId}`)
       .then(res => res.json())
       .then((res: OldModmailResponse) => {
         const automodMessage = res.data.children[0].data;
@@ -244,9 +228,7 @@ export function updateDisplayedFlair(flairText: string) {
   if (!flairEl) {
     flairEl = document.createElement('span');
     flairEl.className = 'linkflairlabel';
-    document
-      .querySelector('.entry .title a')
-      .insertAdjacentElement('afterend', flairEl);
+    document.querySelector('.entry .title a').insertAdjacentElement('afterend', flairEl);
   }
 
   (flairEl as HTMLElement).innerText = flairText;
@@ -263,14 +245,9 @@ export function flairPost(flairText: string) {
   form.set('link', getSubmissionId());
   form.set('text', flairText);
 
-  return makeOauthCall(
-    `https://oauth.reddit.com/r/${sub}/api/flair`,
-    'POST',
-    form,
-    {
-      'content-type': formContentType,
-    }
-  )
+  return makeOauthCall(`https://oauth.reddit.com/r/${sub}/api/flair`, 'POST', form, {
+    'content-type': formContentType,
+  })
     .then(res => res.json())
     .then(res => {
       if (!res.success) {
@@ -296,9 +273,7 @@ export function postAlreadyRejected() {
  * @return {boolean}
  */
 export function postAlreadyApproved() {
-  const approveButton = document.querySelector(
-    '.link [data-event-action="approve"]'
-  );
+  const approveButton = document.querySelector('.link [data-event-action="approve"]');
   return !approveButton;
 }
 
@@ -370,9 +345,7 @@ export function removePost() {
  *  - removes the `spam` class from the post body so it's not red
  */
 export function markPostApproved() {
-  const approveButton = document.querySelector(
-    '.link [data-event-action="approve"]'
-  );
+  const approveButton = document.querySelector('.link [data-event-action="approve"]');
   if (approveButton) {
     approveButton.remove();
   }
@@ -386,9 +359,7 @@ export function markPostApproved() {
   const bodyWrapper = document.querySelector('.thing.link.spam');
   bodyWrapper.classList.remove('spam');
 
-  const removedNotice = document.querySelector(
-    '.thing.link li[title^="removed at"]'
-  );
+  const removedNotice = document.querySelector('.thing.link li[title^="removed at"]');
   if (removedNotice) {
     removedNotice.remove();
   }
@@ -451,14 +422,9 @@ export function stickyComment(commentId: string) {
   form.set('sticky', 'true');
   form.set('api_type', 'json');
 
-  return makeOauthCall(
-    'https://oauth.reddit.com/api/distinguish',
-    'POST',
-    form,
-    {
-      'content-type': formContentType,
-    }
-  );
+  return makeOauthCall('https://oauth.reddit.com/api/distinguish', 'POST', form, {
+    'content-type': formContentType,
+  });
 }
 
 /**
@@ -489,9 +455,7 @@ export function postStickyComment(body: string) {
 export function postSubmissionSticky() {
   const sub = getSubreddit();
 
-  return makeOauthCall(
-    `https://oauth.reddit.com/r/${sub}/wiki/submission_sticky.json`
-  )
+  return makeOauthCall(`https://oauth.reddit.com/r/${sub}/wiki/submission_sticky.json`)
     .then(res => res.json())
     .then(res => {
       const sticky = res.data.content_md;

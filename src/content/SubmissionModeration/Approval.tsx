@@ -26,25 +26,33 @@ export default class Approval extends Component<Props, State> {
     const errors: string[] = [];
     this.setState({ loading: true });
 
-    utils.approvePost().then(() => {
-      return Promise.all([
-        utils.flairPost('').catch(err => {
-          errors.push('Could not remove flair');
-        }),
-        sendModmail ? utils.updateModmail('Approved').catch(err => {
-          errors.push('Could not update modmail');
-        }) : null,
-        createStickyComment ? utils.postSubmissionSticky().catch(err => {
-          errors.push('Could not post sticky comment');
-        }) : null,
-      ]);
-    }).catch(err => {
-      errors.push('Could not approve post');
-    }).then(() => {
-      onApprove(errors.length ? errors : null);
-      this.setState({ loading: false });
-    });
-  }
+    utils
+      .approvePost()
+      .then(() => {
+        return Promise.all([
+          utils.flairPost('').catch(err => {
+            errors.push('Could not remove flair');
+          }),
+          sendModmail
+            ? utils.updateModmail('Approved').catch(err => {
+                errors.push('Could not update modmail');
+              })
+            : null,
+          createStickyComment
+            ? utils.postSubmissionSticky().catch(err => {
+                errors.push('Could not post sticky comment');
+              })
+            : null,
+        ]);
+      })
+      .catch(err => {
+        errors.push('Could not approve post');
+      })
+      .then(() => {
+        onApprove(errors.length ? errors : null);
+        this.setState({ loading: false });
+      });
+  };
 
   render() {
     const { show, onHide } = this.props;
@@ -83,7 +91,7 @@ export default class Approval extends Component<Props, State> {
             Cancel
           </a>
           <a className="pretty-button positive" onClick={this.approvePost} href="#" disabled={loading}>
-            { !loading ? 'Approve post' : 'Approving...' }
+            {!loading ? 'Approve post' : 'Approving...'}
           </a>
         </div>
       </div>

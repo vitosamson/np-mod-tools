@@ -17,10 +17,7 @@ export function renderStickyComment(commentResponse: CommentResponse) {
 
   const container = document.createElement('div');
   (document.querySelector('.sitetable.nestedlisting') as any).prepend(container);
-  render(
-    <StickyComment commentResponse={commentResponse} />,
-    container
-  );
+  render(<StickyComment commentResponse={commentResponse} />, container);
 }
 
 function StickyComment({ commentResponse }: { commentResponse: CommentResponse }) {
@@ -44,10 +41,18 @@ function StickyComment({ commentResponse }: { commentResponse: CommentResponse }
 
       <div className="entry likes">
         <p className="tagline">
-          <a href="#" className="expand">[–]</a>
-          <a href={`/user/${author}`} className="author moderator">{ author }</a>
+          <a href="#" className="expand">
+            [–]
+          </a>
+          <a href={`/user/${author}`} className="author moderator">
+            {author}
+          </a>
           <span className="userattrs">
-            [<a href="#" className="moderator">M</a>]
+            [
+            <a href="#" className="moderator">
+              M
+            </a>
+            ]
           </span>
           <span className="score likes">1 point</span>
           <time className="live-timestamp"> just now</time>

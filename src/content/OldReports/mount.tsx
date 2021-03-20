@@ -21,8 +21,7 @@ async function mountComments() {
   const comments = Array.from(document.querySelectorAll('.thing.comment'));
   const approvedComments = comments.filter(
     comment =>
-      !!comment.querySelector('.thing>.entry>.tagline>.approval-checkmark') ||
-      !!comment.classList.contains('spam')
+      !!comment.querySelector('.thing>.entry>.tagline>.approval-checkmark') || !!comment.classList.contains('spam')
   );
   approvedComments.forEach(async (el: HTMLElement) => {
     const permalink = el.dataset['permalink'];
@@ -36,23 +35,16 @@ async function mountComments() {
       const json = await fetchData(permalink);
       const commentData = json[1].data.children[0].data;
       const userReports =
-        (commentData.ignore_reports
-          ? commentData.user_reports
-          : commentData.user_reports_dismissed) || [];
+        (commentData.ignore_reports ? commentData.user_reports : commentData.user_reports_dismissed) || [];
       const modReports =
-        (commentData.ignore_reports
-          ? commentData.mod_reports
-          : commentData.mod_reports_dismissed) || [];
+        (commentData.ignore_reports ? commentData.mod_reports : commentData.mod_reports_dismissed) || [];
 
       if (!userReports.length && !modReports.length) {
         return;
       }
 
       const container = createContainerElement(el);
-      render(
-        <OldReports userReports={userReports} modReports={modReports} />,
-        container
-      );
+      render(<OldReports userReports={userReports} modReports={modReports} />, container);
     } catch (err) {
       console.error("Couldn't get comment data for comment", thingId);
       console.error(err);
@@ -78,15 +70,9 @@ async function mountComments() {
     }
 
     const container = createContainerElement(submissionEl);
-    render(
-      <OldReports userReports={userReports} modReports={modReports} />,
-      container
-    );
+    render(<OldReports userReports={userReports} modReports={modReports} />, container);
   } catch (err) {
-    console.error(
-      "Couldn't get submission data for submission",
-      submissionThingId
-    );
+    console.error("Couldn't get submission data for submission", submissionThingId);
     console.error(err);
   }
 }
@@ -95,12 +81,8 @@ function mountSubmissions() {
   const submissions = Array.from(document.querySelectorAll('.thing.link'));
   const approvedSubmissions = submissions.filter(
     submission =>
-      !!submission.querySelector(
-        '.thing>.entry>.top-matter>.title>.approval-checkmark'
-      ) &&
-      !submission.querySelector(
-        '.thing>.entry>.top-matter>.title>.approval-checkmark[title*=NeutralverseBot]'
-      )
+      !!submission.querySelector('.thing>.entry>.top-matter>.title>.approval-checkmark') &&
+      !submission.querySelector('.thing>.entry>.top-matter>.title>.approval-checkmark[title*=NeutralverseBot]')
   );
   approvedSubmissions.forEach(async (el: HTMLElement) => {
     const permalink = el.dataset['permalink'];
@@ -121,10 +103,7 @@ function mountSubmissions() {
       }
 
       const container = createContainerElement(el);
-      render(
-        <OldReports userReports={userReports} modReports={modReports} />,
-        container
-      );
+      render(<OldReports userReports={userReports} modReports={modReports} />, container);
     } catch (err) {
       console.error("Couldn't get submission data for submission", thingId);
       console.error(err);
@@ -136,9 +115,7 @@ function createContainerElement(parentElement: HTMLElement) {
   const entry = parentElement.querySelector('.entry');
   const div = document.createElement('div');
   const isNightMode = document.body.classList.contains('res-nightmode');
-  div.style.backgroundColor = isNightMode
-    ? 'rgb(119, 111, 74)'
-    : 'rgb(246, 230, 159)';
+  div.style.backgroundColor = isNightMode ? 'rgb(119, 111, 74)' : 'rgb(246, 230, 159)';
   div.style.color = isNightMode ? '#e3e3e3' : '#000000';
   div.style.padding = '6px 8px';
   div.style.fontSize = '1.1em';
@@ -147,9 +124,7 @@ function createContainerElement(parentElement: HTMLElement) {
   return div;
 }
 
-async function fetchData(
-  permalink: string
-): Promise<Array<{ data: { children: Array<{ data: ThingData }> } }>> {
+async function fetchData(permalink: string): Promise<Array<{ data: { children: Array<{ data: ThingData }> } }>> {
   const res = await fetch(`https://www.reddit.com/${permalink}.json`, {
     credentials: 'same-origin',
     mode: 'no-cors',

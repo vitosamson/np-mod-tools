@@ -29,14 +29,16 @@ export default class RFE extends Component<Props, State> {
       utils.flairPost('RFE').catch(err => {
         errors.push('Could not update flair');
       }),
-      sendModmail ? utils.updateModmail('RFE').catch(err => {
-        errors.push('Could not update modmail');
-      }) : null,
+      sendModmail
+        ? utils.updateModmail('RFE').catch(err => {
+            errors.push('Could not update modmail');
+          })
+        : null,
     ]).then(() => {
       onRFE(errors.length ? errors : null);
       this.setState({ loading: false });
     });
-  }
+  };
 
   render() {
     const { show, onHide } = this.props;
@@ -63,7 +65,7 @@ export default class RFE extends Component<Props, State> {
             Cancel
           </a>
           <a href="#" className="pretty-button positive" onClick={this.rfePost} disabled={loading}>
-            { !loading ? 'Confirm RFE' : 'Updating...' }
+            {!loading ? 'Confirm RFE' : 'Updating...'}
           </a>
         </div>
       </div>

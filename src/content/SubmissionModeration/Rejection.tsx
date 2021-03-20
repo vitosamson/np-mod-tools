@@ -21,9 +21,10 @@ interface State {
 }
 
 const getRuleLetters = (reasons: SelectedReasons) => {
-  return Object.keys(reasons).filter(key => !!reasons[key]).map(reason =>
-    reason.match(/\w:/)[0].substr(0, 1)
-  ).sort();
+  return Object.keys(reasons)
+    .filter(key => !!reasons[key])
+    .map(reason => reason.match(/\w:/)[0].substr(0, 1))
+    .sort();
 };
 
 const createRejectionComment = (reasons: SelectedReasons) => {
@@ -69,7 +70,7 @@ export default class Rejection extends Component<Props, State> {
         [rule]: !this.state.selectedReasons[rule],
       },
     });
-  }
+  };
 
   confirmRejection = (e: Event) => {
     e.preventDefault();
@@ -89,15 +90,21 @@ export default class Rejection extends Component<Props, State> {
         utils.flairPost(flair).catch(err => {
           errors.push('Could not flair post');
         }),
-        sendModmail ? utils.updateModmail(modmail).catch(err => {
-          errors.push('Could not update modmail');
-        }) : null,
-        postComment ? utils.postStickyComment(rejectionComment).catch(err => {
-          errors.push('Could not post sticky comment');
-        }) : null,
-        removeFromQueue ? utils.removePost().catch(err => {
-          errors.push('Could not remove post from queue');
-        }) : null,
+        sendModmail
+          ? utils.updateModmail(modmail).catch(err => {
+              errors.push('Could not update modmail');
+            })
+          : null,
+        postComment
+          ? utils.postStickyComment(rejectionComment).catch(err => {
+              errors.push('Could not post sticky comment');
+            })
+          : null,
+        removeFromQueue
+          ? utils.removePost().catch(err => {
+              errors.push('Could not remove post from queue');
+            })
+          : null,
       ]).then(() => {
         onReject(errors.length ? errors : null);
         this.setState({ loading: false });
@@ -110,7 +117,7 @@ export default class Rejection extends Component<Props, State> {
         }
       });
     }
-  }
+  };
 
   render() {
     const { selectedReasons, postComment, sendModmail, removeFromQueue, loading } = this.state;
@@ -120,13 +127,9 @@ export default class Rejection extends Component<Props, State> {
 
     return (
       <div style={{ padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' }}>
-        { !rules.length &&
-          <div className="error">
-            This subreddit has no rules!
-          </div>
-        }
+        {!rules.length && <div className="error">This subreddit has no rules!</div>}
 
-        { rules.map((rule, idx) =>
+        {rules.map((rule, idx) => (
           <div style={{ marginBottom: 5 }}>
             <input
               type="checkbox"
@@ -136,9 +139,9 @@ export default class Rejection extends Component<Props, State> {
               id={rule.short_name}
               style={{ marginRight: 5 }}
             />
-            <label for={rule.short_name}>{ rule.short_name }</label>
+            <label for={rule.short_name}>{rule.short_name}</label>
           </div>
-        )}
+        ))}
 
         <div>
           <input
@@ -181,7 +184,7 @@ export default class Rejection extends Component<Props, State> {
             Cancel
           </a>
           <a href="#" className="pretty-button negative" onClick={this.confirmRejection} disabled={loading}>
-            { !loading ? 'Confirm rejection' : 'Rejecting...' }
+            {!loading ? 'Confirm rejection' : 'Rejecting...'}
           </a>
         </div>
       </div>

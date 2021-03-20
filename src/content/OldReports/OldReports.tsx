@@ -12,10 +12,7 @@ export default function OldReports({ userReports, modReports }: Props) {
   return (
     <>
       old reports: {userReports.length + modReports.length}
-      <span
-        style={{ marginLeft: 10, cursor: 'pointer' }}
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
+      <span style={{ marginLeft: 10, cursor: 'pointer' }} onClick={() => setIsExpanded(!isExpanded)}>
         {isExpanded ? 'collapse' : 'expand'}
       </span>
       {isExpanded && (
@@ -24,9 +21,7 @@ export default function OldReports({ userReports, modReports }: Props) {
 
           {userReports.length > 0 && (
             <div style={{ marginTop: 5 }}>
-              <span style={{ marginBottom: 2, fontWeight: 'bold' }}>
-                user reports
-              </span>
+              <span style={{ marginBottom: 2, fontWeight: 'bold' }}>user reports</span>
               {userReports.map(([report, count]) => (
                 <p>
                   ({count}) {report}
@@ -37,9 +32,7 @@ export default function OldReports({ userReports, modReports }: Props) {
 
           {modReports.length > 0 && (
             <div style={{ marginTop: 5 }}>
-              <span style={{ marginBottom: 2, fontWeight: 'bold' }}>
-                mod reports
-              </span>
+              <span style={{ marginBottom: 2, fontWeight: 'bold' }}>mod reports</span>
               {modReports.map(([report, mod]) => (
                 <p>
                   {mod}: {report}

@@ -79,9 +79,7 @@ export default class Modmail extends Component<Props, State> {
         {replies.map(reply => (
           <div key={reply.id} style={{ marginBottom: 8 }}>
             <a href={`/u/${reply.from}`}>{reply.from}</a>
-            <span style={{ marginLeft: 5, color: '#98abba' }}>
-              {new Date(reply.created).toLocaleString()}
-            </span>
+            <span style={{ marginLeft: 5, color: '#98abba' }}>{new Date(reply.created).toLocaleString()}</span>
             <div
               style={{
                 paddingLeft: 8,
@@ -108,35 +106,18 @@ export default class Modmail extends Component<Props, State> {
           rows={5}
           ref={el => (this.textarea = el as HTMLElement)}
         />
-        <a
-          className="pretty-button neutral"
-          onClick={onHide}
-          href="#"
-          disabled={loading}
-        >
+        <a className="pretty-button neutral" onClick={onHide} href="#" disabled={loading}>
           Close
         </a>
-        <a
-          className="pretty-button positive"
-          onClick={this.sendMessage}
-          href="#"
-          disabled={loading}
-        >
+        <a className="pretty-button positive" onClick={this.sendMessage} href="#" disabled={loading}>
           {!loading ? 'Send message' : 'Sending...'}
         </a>
 
-        <a
-          href={utils.getModmailMessageLink()}
-          style={{ float: 'right', marginTop: 5 }}
-        >
+        <a href={utils.getModmailMessageLink()} style={{ float: 'right', marginTop: 5 }}>
           Full modmail thread
         </a>
 
-        {error && (
-          <div className="error">
-            There was an error sending the message, please try again.
-          </div>
-        )}
+        {error && <div className="error">There was an error sending the message, please try again.</div>}
       </div>
     );
   }

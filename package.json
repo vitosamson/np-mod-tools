@@ -15,7 +15,8 @@
   "homepage": "https://github.com/vitosamson/np-mod-tools",
   "dependencies": {
     "marked": "^0.3.6",
-    "preact": "^10.5.12"
+    "preact": "^10.5.12",
+    "prettier": "^2.2.1"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.47",

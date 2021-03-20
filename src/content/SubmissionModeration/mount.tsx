@@ -1,12 +1,6 @@
 import { render } from 'preact';
 import SubmissionModeration from './SubmissionModeration';
-import {
-  isMod,
-  getSubreddit,
-  getSubmissionId,
-  getModmailMessageId,
-  isCommentsPage,
-} from '../utils';
+import { isMod, getSubreddit, getSubmissionId, getModmailMessageId, isCommentsPage } from '../utils';
 
 export default function mountSubmissionModeration() {
   const submissionEl = document.querySelector('.linklisting .link.self');

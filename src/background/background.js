@@ -2,14 +2,7 @@ const tokenUrl = 'https://www.reddit.com/api/v1/access_token';
 const clientId = '__CLIENT_ID__'; // this is replaced during the build process. each browser gets a unique client ID
 const basicAuth = `Basic ${btoa(`${clientId}:`)}`;
 const redirectUri = chrome.identity.getRedirectURL();
-const scopes = [
-  'modflair',
-  'modmail',
-  'modposts',
-  'submit',
-  'privatemessages',
-  'wikiread',
-].join('%20');
+const scopes = ['modflair', 'modmail', 'modposts', 'submit', 'privatemessages', 'wikiread'].join('%20');
 
 // bad token values sometimes get stored to localStorage
 const checkValidToken = token => token && token !== 'undefined' && token !== 'null';
@@ -31,10 +24,12 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
           'content-type': 'application/x-www-form-urlencoded',
         },
         body: form,
-      }).then(res => res.json()).then(res => {
-        localStorage.setItem('np-mod-token', res.access_token);
-        sendResponse(res.access_token);
-      });
+      })
+        .then(res => res.json())
+        .then(res => {
+          localStorage.setItem('np-mod-token', res.access_token);
+          sendResponse(res.access_token);
+        });
 
       return true;
     }
@@ -49,36 +44,41 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       duration=permanent
     `.replace(/\s/g, '');
 
-    chrome.identity.launchWebAuthFlow({
-      url: authPageUrl,
-      interactive: true,
-    }, url => {
-      let code = new URLSearchParams(url).get('code');
+    chrome.identity.launchWebAuthFlow(
+      {
+        url: authPageUrl,
+        interactive: true,
+      },
+      url => {
+        let code = new URLSearchParams(url).get('code');
 
-      // The reddit /authorize endpoint has started tacking on some weird characters at the end of the url returned
-      // in the auth flow, leading to an invalid token. Strip those characters out.
-      if (code.endsWith('#_')) {
-        code = code.slice(0, -2);
+        // The reddit /authorize endpoint has started tacking on some weird characters at the end of the url returned
+        // in the auth flow, leading to an invalid token. Strip those characters out.
+        if (code.endsWith('#_')) {
+          code = code.slice(0, -2);
+        }
+
+        const authForm = new URLSearchParams();
+        authForm.set('code', code);
+        authForm.set('redirect_uri', redirectUri);
+        authForm.set('grant_type', 'authorization_code');
+
+        fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: basicAuth,
+            'content-type': 'application/x-www-form-urlencoded',
+          },
+          body: authForm,
+        })
+          .then(res => res.json())
+          .then(res => {
+            localStorage.setItem('np-mod-token', res.access_token);
+            localStorage.setItem('np-mod-refresh-token', res.refresh_token);
+            sendResponse(res.access_token);
+          });
       }
-
-      const authForm = new URLSearchParams();
-      authForm.set('code', code);
-      authForm.set('redirect_uri', redirectUri);
-      authForm.set('grant_type', 'authorization_code');
-
-      fetch(tokenUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: basicAuth,
-          'content-type': 'application/x-www-form-urlencoded',
-        },
-        body: authForm,
-      }).then(res => res.json()).then(res => {
-        localStorage.setItem('np-mod-token', res.access_token);
-        localStorage.setItem('np-mod-refresh-token', res.refresh_token);
-        sendResponse(res.access_token);
-      });
-    });
+    );
 
     return true;
   }
