@@ -3,12 +3,7 @@
   "name": "NP Mod Helper",
   "description": "A browser extension for expediting moderation in the NeutralVerse.",
   "version": "1.6.2",
-  "permissions": [
-    "https://*.reddit.com/",
-    "http://*.reddit.com/",
-    "identity",
-    "storage"
-  ],
+  "permissions": ["https://*.reddit.com/", "http://*.reddit.com/", "identity"],
   "content_scripts": [
     {
       "run_at": "document_end",
