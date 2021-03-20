@@ -1,0 +1,7 @@
+{
+  "browser_specific_settings": {
+    "gecko": {
+      "update_url": "https://raw.githubusercontent.com/vitosamson/np-mod-tools/master/updates.json"
+    }
+  }
+}

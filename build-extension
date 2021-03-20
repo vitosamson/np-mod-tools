@@ -1,13 +1,34 @@
 #!/usr/bin/env node
 const { execSync } = require('child_process');
+const { writeFileSync } = require('fs');
+const baseManifest = require('./extension/manifest.base.json');
+const chromeManifest = require('./extension/manifest.chrome.json');
+const firefoxManifest = require('./extension/manifest.firefox.json');
 
 const apps = {
-  chrome: 'ylxIEK6yp5qu2g',
-  firefox: 'q-foghzcyIqNHA',
+  chrome: {
+    clientId: 'ylxIEK6yp5qu2g',
+    manifest: chromeManifest,
+  },
+  firefox: {
+    clientId: 'q-foghzcyIqNHA',
+    manifest: firefoxManifest,
+  },
 };
 
 Object.keys(apps).map(browser => {
-  execSync(`NODE_ENV=production BROWSER=${browser} CLIENT_ID=${apps[browser]} webpack`, {
+  /**
+   * Firefox takes some additional keys in the manifest that chrome doesn't allow.
+   * TODO: deep merge these?
+   */
+  const manifest = {
+    ...baseManifest,
+    ...apps[browser].manifest,
+  };
+
+  writeFileSync('./extension/manifest.json', JSON.stringify(manifest, null, 2));
+
+  execSync(`NODE_ENV=production BROWSER=${browser} CLIENT_ID=${apps[browser].clientId} webpack`, {
     stdio: [0, 1, 2],
   });
 });
