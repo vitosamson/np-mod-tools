@@ -13,11 +13,18 @@ export function renderStickyComment(commentResponse: CommentResponse) {
   // into regular tags for use in dangerouslySetInnerHTML
   const hackDiv = document.createElement('div');
   hackDiv.innerHTML = commentResponse.body_html;
-  commentResponse.body_html = hackDiv.childNodes[0].nodeValue;
+  const formattedCommentResponse = {
+    ...commentResponse,
+    body_html: hackDiv.childNodes[0].nodeValue as string,
+  };
 
-  const container = document.createElement('div');
-  (document.querySelector('.sitetable.nestedlisting') as any).prepend(container);
-  render(<StickyComment commentResponse={commentResponse} />, container);
+  const listingEl = document.querySelector('.sitetable.nestedlisting');
+
+  if (listingEl) {
+    const container = document.createElement('div');
+    listingEl.prepend(container);
+    render(<StickyComment commentResponse={formattedCommentResponse} />, container);
+  }
 }
 
 function StickyComment({ commentResponse }: { commentResponse: CommentResponse }) {

@@ -1,74 +1,63 @@
-import { Component } from 'preact';
-import * as utils from '../utils';
+import { useState } from 'preact/hooks';
+import { flairPost, updateModmail, useToggleState } from '../utils';
 
 interface Props {
   show: boolean;
   onHide: (e: Event) => void;
-  onRFE: (errors?: string[]) => void;
+  onRFE: (errors: string[]) => void;
 }
 
-interface State {
-  sendModmail: boolean;
-  loading: boolean;
-}
+export default function RFE({ show, onHide, onRFE }: Props) {
+  const [sendModmail, toggleSendModmail] = useToggleState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-export default class RFE extends Component<Props, State> {
-  state: State = {
-    sendModmail: true,
-    loading: false,
-  };
-
-  rfePost = async (e: Event) => {
-    e.preventDefault();
-    const { onRFE } = this.props;
-    const { sendModmail } = this.state;
+  const handleRfe = async (evt: MouseEvent) => {
+    evt.preventDefault();
     const errors: string[] = [];
-    this.setState({ loading: true });
+
+    setIsLoading(true);
 
     await Promise.all([
-      utils.flairPost('RFE').catch(err => {
+      flairPost('RFE').catch(err => {
         errors.push('Could not update flair');
       }),
       sendModmail
-        ? utils.updateModmail('RFE').catch(err => {
+        ? updateModmail('RFE').catch(err => {
             errors.push('Could not update modmail');
           })
         : null,
     ]);
 
-    onRFE(errors.length ? errors : null);
-    this.setState({ loading: false });
+    onRFE(errors);
+    setIsLoading(false);
   };
 
-  render() {
-    const { show, onHide } = this.props;
-    const { sendModmail, loading } = this.state;
-
-    if (!show) return null;
-
-    return (
-      <div style={{ padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' }}>
-        <div>
-          <input
-            type="checkbox"
-            checked={sendModmail}
-            onChange={() => this.setState({ sendModmail: !sendModmail })}
-            name="sendModmail"
-            id="sendModmail"
-            style={{ marginRight: 5, marginTop: 10 }}
-          />
-          <label for="sendModmail">Update modmail</label>
-        </div>
-
-        <div style={{ marginTop: 15 }}>
-          <a href="#" className="pretty-button neutral" onClick={onHide} disabled={loading}>
-            Cancel
-          </a>
-          <a href="#" className="pretty-button positive" onClick={this.rfePost} disabled={loading}>
-            {!loading ? 'Confirm RFE' : 'Updating...'}
-          </a>
-        </div>
-      </div>
-    );
+  if (!show) {
+    return null;
   }
+
+  return (
+    <div style={{ padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' }}>
+      <div>
+        <input
+          type="checkbox"
+          checked={sendModmail}
+          onChange={toggleSendModmail}
+          name="sendModmail"
+          id="sendModmail"
+          style={{ marginRight: 5, marginTop: 10 }}
+        />
+        <label for="sendModmail">Update modmail</label>
+      </div>
+
+      <div style={{ marginTop: 15 }}>
+        <a href="#" className="pretty-button neutral" onClick={onHide} disabled={isLoading}>
+          Cancel
+        </a>
+        <a href="#" className="pretty-button positive" onClick={handleRfe} disabled={isLoading}>
+          {!isLoading ? 'Confirm RFE' : 'Updating...'}
+        </a>
+      </div>
+    </div>
+  );
 }

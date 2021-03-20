@@ -1,114 +1,105 @@
-import { Component } from 'preact';
-import * as utils from '../utils';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { getModmailMessageLink, updateModmail, NormalizedModmailMessage } from '../utils';
 
 interface Props {
   show: boolean;
   onHide: (e: Event) => void;
-  onSend: (errors?: string[]) => void;
-  replies: utils.NormalizedModmailMessage[];
+  onSend: () => void;
+  replies: NormalizedModmailMessage[];
 }
 
-interface State {
-  message: string;
-  error: boolean;
-  loading: boolean;
-}
+export default function Modmail({ show, replies, onHide, onSend }: Props) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const modmailThreadUrl = getModmailMessageLink();
 
-export default class Modmail extends Component<Props, State> {
-  textarea: HTMLElement;
-  state: State = {
-    message: '',
-    error: false,
-    loading: false,
-  };
-
-  componentDidUpdate(prevProps: Props) {
-    if (this.props.show && !prevProps.show && this.textarea) {
-      this.textarea.focus();
+  useEffect(() => {
+    if (show) {
+      textareaRef.current?.focus();
     }
-  }
+  }, [show]);
 
-  setMessage = (message: string) => {
-    this.setState({
-      message,
-    });
-  };
-
-  handleKeyboardSubmit = (e: KeyboardEvent) => {
-    if (e.keyCode === 13 && (e.metaKey || e.ctrlKey)) {
-      this.sendMessage(e);
+  const handleSubmit = async (evt?: MouseEvent) => {
+    if (evt) {
+      evt.preventDefault();
     }
-  };
 
-  sendMessage = async (e: Event) => {
-    e.preventDefault();
-    const { onSend } = this.props;
-    const { message } = this.state;
+    if (!message) {
+      return;
+    }
 
-    if (!message) return;
-    this.setState({ loading: true });
+    setIsLoading(true);
 
     try {
-      await utils.updateModmail(message);
-      this.setState({ message: '', error: false }, () => onSend());
+      await updateModmail(message);
+      setMessage('');
+      setHasError(false);
     } catch (err) {
-      this.setState({ error: true });
+      setHasError(true);
     } finally {
-      this.setState({ loading: false });
+      setIsLoading(false);
     }
   };
 
-  render() {
-    const { show, onHide, replies } = this.props;
-    const { message, error, loading } = this.state;
+  const handleKeyboardSubmit = (evt: KeyboardEvent) => {
+    if (evt.key === 'Enter' || (evt.key === 'Return' && (evt.metaKey || evt.ctrlKey))) {
+      evt.preventDefault();
+      handleSubmit();
+    }
+  };
 
-    if (!show) return null;
+  if (!show) {
+    return null;
+  }
 
-    return (
-      <div style={{ padding: '10px 20px', border: '1px solid #ccc' }}>
-        {replies.map(reply => (
-          <div key={reply.id} style={{ marginBottom: 8 }}>
-            <a href={`/u/${reply.from}`}>{reply.from}</a>
-            <span style={{ marginLeft: 5, color: '#98abba' }}>{new Date(reply.created).toLocaleString()}</span>
-            <div
-              style={{
-                paddingLeft: 8,
-                paddingTop: 4,
-              }}
-              dangerouslySetInnerHTML={{
-                __html: reply.body,
-              }}
-            />
-          </div>
-        ))}
+  return (
+    <div style={{ padding: '10px 20px', border: '1px solid #ccc' }}>
+      {replies.map(reply => (
+        <div key={reply.id} style={{ marginBottom: 8 }}>
+          <a href={`/u/${reply.from}`}>{reply.from}</a>
+          <span style={{ marginLeft: 5, color: '#98abba' }}>{new Date(reply.created).toLocaleString()}</span>
+          <div
+            style={{
+              paddingLeft: 8,
+              paddingTop: 4,
+            }}
+            dangerouslySetInnerHTML={{
+              __html: reply.body,
+            }}
+          />
+        </div>
+      ))}
 
-        <textarea
-          value={message}
-          onInput={evt => this.setMessage(evt.currentTarget.value)}
-          onKeyDown={this.handleKeyboardSubmit}
-          style={{
-            width: '100%',
-            maxWidth: '100%',
-            display: 'block',
-            marginBottom: 10,
-            marginTop: 10,
-          }}
-          rows={5}
-          ref={el => (this.textarea = el as HTMLElement)}
-        />
-        <a className="pretty-button neutral" onClick={onHide} href="#" disabled={loading}>
-          Close
-        </a>
-        <a className="pretty-button positive" onClick={this.sendMessage} href="#" disabled={loading}>
-          {!loading ? 'Send message' : 'Sending...'}
-        </a>
+      <textarea
+        value={message}
+        onInput={evt => setMessage(evt.currentTarget.value)}
+        onKeyDown={handleKeyboardSubmit}
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          display: 'block',
+          marginBottom: 10,
+          marginTop: 10,
+        }}
+        rows={5}
+        ref={textareaRef}
+      />
+      <a className="pretty-button neutral" onClick={onHide} href="#" disabled={isLoading}>
+        Close
+      </a>
+      <a className="pretty-button positive" onClick={handleSubmit} href="#" disabled={isLoading}>
+        {!isLoading ? 'Send message' : 'Sending...'}
+      </a>
 
-        <a href={utils.getModmailMessageLink()} style={{ float: 'right', marginTop: 5 }}>
+      {modmailThreadUrl && (
+        <a href={modmailThreadUrl} style={{ float: 'right', marginTop: 5 }}>
           Full modmail thread
         </a>
+      )}
 
-        {error && <div className="error">There was an error sending the message, please try again.</div>}
-      </div>
-    );
-  }
+      {hasError && <div className="error">There was an error sending the message, please try again.</div>}
+    </div>
+  );
 }

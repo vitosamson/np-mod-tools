@@ -1,5 +1,5 @@
-import { useState } from 'preact/hooks';
 import { ModReport, UserReport } from '../types';
+import { useToggleState } from '../utils';
 
 interface Props {
   userReports: UserReport[];
@@ -7,12 +7,12 @@ interface Props {
 }
 
 export default function OldReports({ userReports, modReports }: Props) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, toggleIsExpanded] = useToggleState(false);
 
   return (
     <>
       old reports: {userReports.length + modReports.length}
-      <span style={{ marginLeft: 10, cursor: 'pointer' }} onClick={() => setIsExpanded(!isExpanded)}>
+      <span style={{ marginLeft: 10, cursor: 'pointer' }} onClick={toggleIsExpanded}>
         {isExpanded ? 'collapse' : 'expand'}
       </span>
       {isExpanded && (

@@ -9,7 +9,8 @@
     "jsxImportSource": "preact",
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
-    "lib": ["dom", "es5", "es2015", "es2016"]
+    "lib": ["dom", "es5", "es2015", "es2016"],
+    "strict": true
   },
   "include": ["./src/content", "chrome"]
 }

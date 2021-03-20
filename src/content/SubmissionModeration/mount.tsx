@@ -10,7 +10,7 @@ export default function mountSubmissionModeration() {
   }
 
   const moderationWrapper = document.createElement('div');
-  submissionEl.querySelector('.entry').appendChild(moderationWrapper);
+  submissionEl.querySelector('.entry')?.appendChild(moderationWrapper);
 
   render(<SubmissionModeration />, moderationWrapper);
 

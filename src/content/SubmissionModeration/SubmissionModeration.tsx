@@ -1,222 +1,173 @@
-import { Component } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
 import Approval from './Approval';
 import RFE from './RFE';
 import Rejection from './Rejection';
 import Modmail from './Modmail';
-import * as utils from '../utils';
+import {
+  getAccessToken,
+  getModmailReplies,
+  getRules,
+  useToggleState,
+  postAlreadyApproved,
+  postAlreadyRFEd,
+  postAlreadyRejected,
+  getModmailMessageLink,
+  SubredditRule,
+  NormalizedModmailMessage,
+} from '../utils';
 
 interface Feedback {
   type: string;
   message: string;
 }
 
-interface State {
-  rules: utils.SubredditRule[];
-  showApproval: boolean;
-  showRFE: boolean;
-  showRejection: boolean;
-  showModmail: boolean;
-  feedback: Feedback[];
-  modmailReplies: utils.NormalizedModmailMessage[];
-}
+export default function SubmissionModeration() {
+  const [rules, setRules] = useState<SubredditRule[]>([]);
+  const [showApproval, toggleShowApproval] = useToggleState(false);
+  const [showRFE, toggleShowRFE] = useToggleState(false);
+  const [showRejection, toggleShowRejection] = useToggleState(false);
+  const [showModmail, toggleShowModmail] = useToggleState(false);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [modmailReplies, setModmailReplies] = useState<NormalizedModmailMessage[]>([]);
+  const isApproved = postAlreadyApproved();
+  const isRFEd = postAlreadyRFEd();
+  const isRejected = postAlreadyRejected();
+  const modmailMessageLink = getModmailMessageLink();
 
-export default class SubmissionModeration extends Component<{}, State> {
-  state: State = {
-    rules: [],
-    showApproval: false,
-    showRFE: false,
-    showRejection: false,
-    showModmail: false,
-    feedback: [],
-    modmailReplies: [],
-  };
-
-  componentDidMount = async () => {
-    await utils.getAccessToken();
-    this.getModmailReplies();
-
+  const _getModmailReplies = async () => {
     try {
-      const rules = await utils.getRules();
-      this.setState({ rules });
-    } catch (err) {
-      console.error('could not get rules', err);
-    }
-  };
-
-  getModmailReplies = async () => {
-    try {
-      const modmailReplies = await utils.getModmailReplies();
-      this.setState({ modmailReplies });
+      setModmailReplies(await getModmailReplies());
     } catch (err) {
       console.error('could not get modmail replies', err);
-      this.setState({
-        feedback: [
-          ...this.state.feedback,
-          {
-            type: 'error',
-            message: 'Could not fetch modmail messages',
-          },
-        ],
-      });
+      setFeedback([
+        ...feedback,
+        {
+          type: 'error',
+          message: 'Could not fetch modmail messages',
+        },
+      ]);
     }
   };
 
-  toggleRejection = (e: Event) => {
-    if (e) e.preventDefault();
-    this.setState({
-      showRejection: !this.state.showRejection,
-    });
-  };
+  useEffect(() => {
+    (async () => {
+      await getAccessToken();
+      _getModmailReplies();
 
-  handleRejection = (errors?: string[]) => {
-    if (errors && errors.length) {
-      this.setState({
-        feedback: errors.map(err => ({
+      try {
+        setRules(await getRules());
+      } catch (err) {
+        console.error('could not get rules', err);
+      }
+    })();
+  }, []);
+
+  const handleRejection = (errors: string[]) => {
+    if (errors.length) {
+      setFeedback(
+        errors.map(err => ({
           type: 'error',
           message: err,
-        })),
-      });
+        }))
+      );
     } else {
-      this.getModmailReplies();
-      this.setState({
-        feedback: [
-          {
-            type: 'success',
-            message: 'Successfully rejected post',
-          },
-        ],
-        showRejection: false,
-      });
+      _getModmailReplies();
+      toggleShowRejection();
+      setFeedback([
+        {
+          type: 'success',
+          message: 'Successfully rejected post',
+        },
+      ]);
     }
   };
 
-  toggleApproval = (e?: Event) => {
-    if (e) e.preventDefault();
-    this.setState({
-      showApproval: !this.state.showApproval,
-    });
-  };
-
-  handleApproval = (errors?: string[]) => {
-    if (errors && errors.length) {
-      this.setState({
-        feedback: errors.map(err => ({
+  const handleApproval = async (errors: string[]) => {
+    if (errors.length) {
+      setFeedback(
+        errors.map(err => ({
           type: 'error',
           message: err,
-        })),
-      });
+        }))
+      );
     } else {
-      this.getModmailReplies();
-      this.setState({
-        feedback: [
-          {
-            type: 'success',
-            message: 'Successfully approved post',
-          },
-        ],
-        showApproval: false,
-      });
+      _getModmailReplies();
+      toggleShowApproval();
+      setFeedback([
+        {
+          type: 'success',
+          message: 'Successfully approved post',
+        },
+      ]);
     }
   };
 
-  toggleModmail = (e?: Event) => {
-    if (e) e.preventDefault();
-    this.setState({
-      showModmail: !this.state.showModmail,
-    });
+  const handleSentModmail = () => {
+    _getModmailReplies();
   };
 
-  handleSentModmail = () => {
-    this.getModmailReplies();
-  };
-
-  toggleRFE = (e?: Event) => {
-    if (e) e.preventDefault();
-    this.setState({
-      showRFE: !this.state.showRFE,
-    });
-  };
-
-  handleRFE = (errors?: string[]) => {
-    if (errors && errors.length) {
-      this.setState({
-        feedback: errors.map(err => ({
+  const handleRFE = (errors: string[]) => {
+    if (errors.length) {
+      setFeedback(
+        errors.map(err => ({
           type: 'error',
           message: err,
-        })),
-      });
+        }))
+      );
     } else {
-      this.getModmailReplies();
-      this.setState({
-        feedback: [
-          {
-            type: 'success',
-            message: 'Successfully marked post as RFE',
-          },
-        ],
-        showRFE: false,
-      });
+      _getModmailReplies();
+      toggleShowRFE();
+      setFeedback([
+        {
+          type: 'success',
+          message: 'Successfully marked post as RFE',
+        },
+      ]);
     }
   };
 
-  render() {
-    const { showApproval, showRFE, showRejection, showModmail, rules, modmailReplies, feedback } = this.state;
-    const rejected = utils.postAlreadyRejected();
-    const approved = utils.postAlreadyApproved();
-    const RFEd = utils.postAlreadyRFEd();
-    const modmailMessageLink = utils.getModmailMessageLink();
+  return (
+    <div style={{ marginTop: 5 }}>
+      <span style={{ fontWeight: 'bold', marginLeft: 5 }}>NP Moderation:</span>
 
-    return (
-      <div style={{ marginTop: 5 }}>
-        <span style={{ fontWeight: 'bold', marginLeft: 5 }}>NP Moderation:</span>
+      {!isApproved && (
+        <a href="#" className="pretty-button positive" onClick={toggleShowApproval}>
+          Approve
+        </a>
+      )}
+      {!isApproved && !isRFEd && (
+        <a href="#" className="pretty-button neutral" onClick={toggleShowRFE}>
+          RFE
+        </a>
+      )}
+      {!isRejected && (
+        <a href="#" className="pretty-button negative" onClick={toggleShowRejection}>
+          Reject
+        </a>
+      )}
 
-        {!approved && (
-          <a href="#" className="pretty-button positive" onClick={this.toggleApproval}>
-            Approve
-          </a>
-        )}
-        {!approved && !RFEd && (
-          <a href="#" className="pretty-button neutral" onClick={this.toggleRFE}>
-            RFE
-          </a>
-        )}
-        {!rejected && (
-          <a href="#" className="pretty-button negative" onClick={this.toggleRejection}>
-            Reject
-          </a>
-        )}
+      {modmailMessageLink && (
+        <a href="#" className="pretty-button" onClick={toggleShowModmail}>
+          Modmail [{(modmailReplies && modmailReplies.length) || '0'}]
+        </a>
+      )}
 
-        {modmailMessageLink && (
-          <a href="#" className="pretty-button" onClick={this.toggleModmail}>
-            Modmail [{(modmailReplies && modmailReplies.length) || '0'}]
-          </a>
-        )}
+      {!modmailMessageLink && <span style={{ marginLeft: 5, color: 'orange' }}>No trackback comment was found</span>}
 
-        {!modmailMessageLink && <span style={{ marginLeft: 5, color: 'orange' }}>No trackback comment was found</span>}
+      <Approval show={showApproval} onHide={toggleShowApproval} onApprove={handleApproval} />
+      <RFE show={showRFE} onHide={toggleShowRFE} onRFE={handleRFE} />
+      <Rejection show={showRejection} onHide={toggleShowRejection} onReject={handleRejection} rules={rules} />
+      <Modmail show={showModmail} onHide={toggleShowModmail} onSend={handleSentModmail} replies={modmailReplies} />
 
-        <Approval show={showApproval} onHide={this.toggleApproval} onApprove={this.handleApproval} />
-
-        <RFE show={showRFE} onHide={this.toggleRFE} onRFE={this.handleRFE} />
-
-        <Rejection show={showRejection} onHide={this.toggleRejection} onReject={this.handleRejection} rules={rules} />
-
-        <Modmail
-          show={showModmail}
-          onHide={this.toggleModmail}
-          onSend={this.handleSentModmail}
-          replies={modmailReplies}
-        />
-
-        {feedback.map(f => (
-          <div
-            style={{
-              color: f.type === 'success' ? 'green' : 'red',
-            }}
-          >
-            {f.message}
-          </div>
-        ))}
-      </div>
-    );
-  }
+      {feedback.map(f => (
+        <div
+          style={{
+            color: f.type === 'success' ? 'green' : 'red',
+          }}
+        >
+          {f.message}
+        </div>
+      ))}
+    </div>
+  );
 }

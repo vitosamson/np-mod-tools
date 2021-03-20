@@ -1,4 +1,5 @@
 import * as marked from 'marked';
+import { useCallback, useState } from 'preact/hooks';
 import { renderStickyComment, CommentResponse } from './SubmissionModeration/StickyComment';
 
 marked.setOptions({
@@ -49,8 +50,7 @@ export async function makeOauthCall<TResponse>(
 }
 
 /**
- * Sends a message to the background script to fetch the oauth token
- * @return {Promise<string>} the oauth token
+ * Sends a message to the background script to fetch the oauth token and returns it.
  */
 export function getAccessToken() {
   if (token) return Promise.resolve(token);
@@ -65,29 +65,26 @@ export function getAccessToken() {
 }
 
 /**
- * Parses the submission ID from the current URL
- * @return {string} the submission ID
+ * Parses the submission ID from the current URL and returns it.
  */
 export function getSubmissionId() {
   if (submissionId) return submissionId;
-  submissionId = window.location.href.match(/comments\/(\w+)\//)[1];
+  submissionId = window.location.href.match(/comments\/(\w+)\//)![1];
   submissionId = `t3_${submissionId}`;
   return submissionId;
 }
 
 /**
- * Parses the subreddit name from the current URL
- * @return {string} the subreddit name
+ * Parses the subreddit name from the current URL and returns it.
  */
 export function getSubreddit() {
   if (subreddit) return subreddit;
-  subreddit = window.location.href.match(/\/r\/(\w+)\//)[1];
+  subreddit = window.location.href.match(/\/r\/(\w+)\//)![1];
   return subreddit;
 }
 
 /**
- * Tries to find the TrackbackLinkBot comment in the current thread
- * @return {string} the link to the modmail thread
+ * Tries to find the TrackbackLinkBot comment in the current thread and returns the link.
  */
 export function getModmailMessageLink() {
   if (modmailMessageLink) return modmailMessageLink;
@@ -98,30 +95,35 @@ export function getModmailMessageLink() {
   );
   let trackbackLink: HTMLElement;
 
-  if (!trackbackComment) return '';
+  if (!trackbackComment) {
+    return '';
+  }
 
-  /* tslint:disable:no-conditional-assignment */
-  if ((trackbackLink = trackbackComment.querySelector(oldModmailPattern))) {
+  if (trackbackComment.querySelector(oldModmailPattern)) {
+    trackbackLink = trackbackComment.querySelector(oldModmailPattern) as HTMLElement;
     useNewModmail = false;
-  } else if ((trackbackLink = trackbackComment.querySelector(newModmailPattern))) {
+  } else if (trackbackComment.querySelector(newModmailPattern)) {
+    trackbackLink = trackbackComment.querySelector(newModmailPattern) as HTMLElement;
     useNewModmail = true;
   } else {
     return null;
   }
-  /* tslint:enable:no-conditional-assignment */
 
   modmailMessageLink = trackbackLink.innerText;
   return modmailMessageLink;
 }
 
 /**
- * Parses the modmail message id from the TrackbackLinkBot comment
- * @return {string} the modmail message ID
+ * Parses the modmail message ID from the TrackbackLinkBot comment and returns it.
  */
 export function getModmailMessageId() {
   if (modmailMessageId) return modmailMessageId;
   const trackbackLink = getModmailMessageLink();
-  modmailMessageId = trackbackLink.slice(trackbackLink.lastIndexOf('/') + 1);
+
+  if (trackbackLink) {
+    modmailMessageId = trackbackLink.slice(trackbackLink.lastIndexOf('/') + 1);
+  }
+
   return modmailMessageId;
 }
 
@@ -213,10 +215,9 @@ export async function getModmailReplies(): Promise<NormalizedModmailMessage[]> {
 
 /**
  * Updates the displayed flair text on the page (does not hit the API, this is only for local feedback)
- * @param  {string} flairText
  */
 export function updateDisplayedFlair(flairText: string) {
-  let flairEl: HTMLElement = document.querySelector('.linkflairlabel');
+  let flairEl: HTMLElement | null = document.querySelector('.linkflairlabel');
 
   if (flairEl && !flairText) {
     flairEl.remove();
@@ -228,7 +229,7 @@ export function updateDisplayedFlair(flairText: string) {
   if (!flairEl) {
     flairEl = document.createElement('span');
     flairEl.className = 'linkflairlabel';
-    document.querySelector('.entry .title a').insertAdjacentElement('afterend', flairEl);
+    document.querySelector('.entry .title a')?.insertAdjacentElement('afterend', flairEl);
   }
 
   flairEl.innerText = flairText;
@@ -236,8 +237,6 @@ export function updateDisplayedFlair(flairText: string) {
 
 /**
  * Updates the post's flair
- * @param  {string} flairText
- * @return {Promise}
  */
 export async function flairPost(flairText: string) {
   const form = new URLSearchParams();
@@ -259,7 +258,6 @@ export async function flairPost(flairText: string) {
 /**
  * Determines if the post has already been rejected by checking if it has the Rejected flair
  * @todo this no longer works since the post is now just flaired with the rule letters, not "Rejected"
- * @return {boolean}
  */
 export function postAlreadyRejected() {
   const flair = document.querySelector('.linkflairlabel') as HTMLElement;
@@ -268,7 +266,6 @@ export function postAlreadyRejected() {
 
 /**
  * Determines if the post has already been approved by checking if the Approve button isn't present
- * @return {boolean}
  */
 export function postAlreadyApproved() {
   const approveButton = document.querySelector('.link [data-event-action="approve"]');
@@ -277,7 +274,6 @@ export function postAlreadyApproved() {
 
 /**
  * Determines it the post has already been marked as RFE by checking if it has the RFE flair
- * @return {boolean}
  */
 export function postAlreadyRFEd() {
   const flair = document.querySelector('.linkflairlabel') as HTMLElement;
@@ -286,8 +282,6 @@ export function postAlreadyRFEd() {
 
 /**
  * Sends a modmail message
- * @param  {string}  message the message to send
- * @return {Promise}
  */
 export function updateModmail(message: string) {
   const messageId = getModmailMessageId();
@@ -312,7 +306,6 @@ export function updateModmail(message: string) {
 
 /**
  * Approves the post
- * @return {Promise}
  */
 export function approvePost() {
   const form = new URLSearchParams();
@@ -352,10 +345,10 @@ export function markPostApproved() {
   const checkmark = document.createElement('img');
   checkmark.className = 'approval-checkmark';
   checkmark.setAttribute('src', '//www.redditstatic.com/green-check.png');
-  title.parentNode.insertBefore(checkmark, title.nextSibling);
+  title?.parentNode?.insertBefore(checkmark, title.nextSibling);
 
   const bodyWrapper = document.querySelector('.thing.link.spam');
-  bodyWrapper.classList.remove('spam');
+  bodyWrapper?.classList.remove('spam');
 
   const removedNotice = document.querySelector('.thing.link li[title^="removed at"]');
   if (removedNotice) {
@@ -371,8 +364,6 @@ export interface SubredditRule {
 
 /**
  * Fetches the subreddit's rules, to be used for rejection reasons
- * @param  {string} [kind='link'] the type of rules to return. we're typically only interested in links here
- * @return {Promise<SubredditRule[]>}
  */
 export async function getRules(kind: RuleKind = 'link') {
   const sub = getSubreddit();
@@ -423,8 +414,6 @@ export function stickyComment(
 
 /**
  * Posts, distinguishes and stickies a comment
- * @param  {string} body
- * @return {Promise}
  */
 export async function postStickyComment(body: string) {
   const commentId = await postComment(body);
@@ -434,7 +423,6 @@ export async function postStickyComment(body: string) {
 
 /**
  * Gets the submission sticky from the sub's wiki, then posts it as a distinguished sticky comment on the thread
- * @return {Promise}
  */
 export async function postSubmissionSticky() {
   const sub = getSubreddit();
@@ -447,8 +435,6 @@ export async function postSubmissionSticky() {
 
 /**
  * Converts reddit's markdown to html
- * @param  {string} markdown the markdown returned from reddit
- * @return {string}          the html markup
  */
 export function markdownToHtml(markdown: string) {
   markdown = (markdown || '').replace(/&gt;/g, '>');
@@ -482,4 +468,10 @@ export function isCommentsPage() {
 
 export function isSubmissionsPage() {
   return document.body.classList.contains('listing-page');
+}
+
+export function useToggleState(defaultState: boolean): [boolean, () => void] {
+  const [state, setState] = useState(defaultState);
+  const toggleState = useCallback(() => setState(!state), [state]);
+  return [state, toggleState];
 }

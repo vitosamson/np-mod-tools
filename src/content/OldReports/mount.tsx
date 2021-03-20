@@ -22,8 +22,8 @@ async function mountComments() {
   const approvedComments = comments.filter(
     comment =>
       !!comment.querySelector('.thing>.entry>.tagline>.approval-checkmark') || !!comment.classList.contains('spam')
-  );
-  approvedComments.forEach(async (el: HTMLElement) => {
+  ) as HTMLElement[];
+  approvedComments.forEach(async el => {
     const permalink = el.dataset['permalink'];
     const thingId = el.dataset['fullname'];
 
@@ -51,7 +51,7 @@ async function mountComments() {
     }
   });
 
-  const submissionEl: HTMLElement = document.querySelector('.thing.link');
+  const submissionEl = document.querySelector('.thing.link') as HTMLElement;
   const submissionPermalink = submissionEl.dataset['permalink'];
   const submissionThingId = submissionEl.dataset['fullname'];
 
@@ -83,8 +83,8 @@ function mountSubmissions() {
     submission =>
       !!submission.querySelector('.thing>.entry>.top-matter>.title>.approval-checkmark') &&
       !submission.querySelector('.thing>.entry>.top-matter>.title>.approval-checkmark[title*=NeutralverseBot]')
-  );
-  approvedSubmissions.forEach(async (el: HTMLElement) => {
+  ) as HTMLElement[];
+  approvedSubmissions.forEach(async el => {
     const permalink = el.dataset['permalink'];
     const thingId = el.dataset['fullname'];
 
@@ -120,7 +120,7 @@ function createContainerElement(parentElement: HTMLElement) {
   div.style.padding = '6px 8px';
   div.style.fontSize = '1.1em';
   div.style.maxWidth = '74em';
-  entry.appendChild(div);
+  entry?.appendChild(div);
   return div;
 }
 

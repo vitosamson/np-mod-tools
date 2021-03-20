@@ -1,44 +1,38 @@
-import { Component } from 'preact';
-import * as utils from '../utils';
+import { useState } from 'preact/hooks';
+import { approvePost, flairPost, updateModmail, postSubmissionSticky, useToggleState } from '../utils';
 
 interface Props {
   show: boolean;
   onHide: (e: Event) => void;
-  onApprove: (errors?: string[]) => void;
+  onApprove: (errors: string[]) => void;
 }
 
-interface State {
-  createStickyComment: boolean;
-  sendModmail: boolean;
-  loading: boolean;
-}
+export default function Approval({ show, onHide, onApprove }: Props) {
+  const [createStickyComment, toggleCreateStickyComment] = useToggleState(true);
+  const [sendModmail, toggleSendModmail] = useToggleState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-export default class Approval extends Component<Props, State> {
-  state: State = {
-    createStickyComment: true,
-    sendModmail: true,
-    loading: false,
-  };
+  if (!show) {
+    return null;
+  }
 
-  approvePost = async () => {
-    const { createStickyComment, sendModmail } = this.state;
-    const { onApprove } = this.props;
+  const handleApproval = async () => {
     const errors: string[] = [];
-    this.setState({ loading: true });
+    setIsLoading(true);
 
     try {
-      await utils.approvePost();
+      await approvePost();
       await Promise.all([
-        utils.flairPost('').catch(err => {
+        flairPost('').catch(err => {
           errors.push('Could not remove flair');
         }),
         sendModmail
-          ? utils.updateModmail('Approved').catch(err => {
+          ? updateModmail('Approved').catch(err => {
               errors.push('Could not update modmail');
             })
           : null,
         createStickyComment
-          ? utils.postSubmissionSticky().catch(err => {
+          ? postSubmissionSticky().catch(err => {
               errors.push('Could not post sticky comment');
             })
           : null,
@@ -46,52 +40,45 @@ export default class Approval extends Component<Props, State> {
     } catch (err) {
       errors.push('Could not approve post');
     } finally {
-      onApprove(errors.length ? errors : null);
-      this.setState({ loading: false });
+      onApprove(errors);
+      setIsLoading(false);
     }
   };
 
-  render() {
-    const { show, onHide } = this.props;
-    const { createStickyComment, sendModmail, loading } = this.state;
-
-    if (!show) return null;
-
-    return (
-      <div style={{ padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' }}>
-        <div>
-          <input
-            type="checkbox"
-            style={{ marginRight: 5 }}
-            checked={createStickyComment}
-            name="createStickyComment"
-            id="createStickyComment"
-            onChange={() => this.setState({ createStickyComment: !createStickyComment })}
-          />
-          <label for="createStickyComment">Add sticky rule reminder</label>
-        </div>
-
-        <div>
-          <input
-            type="checkbox"
-            style={{ marginRight: 5, marginTop: 5 }}
-            checked={sendModmail}
-            name="sendModmail"
-            id="sendModmail"
-            onChange={() => this.setState((state: State) => ({ sendModmail: !state.sendModmail }))}
-          />
-          <label for="sendModmail">Update modmail</label>
-        </div>
-
-        <div style={{ marginTop: 10 }}>
-          <a className="pretty-button neutral" onClick={onHide} href="#" disabled={loading}>
-            Cancel
-          </a>
-          <a className="pretty-button positive" onClick={this.approvePost} href="#" disabled={loading}>
-            {!loading ? 'Approve post' : 'Approving...'}
-          </a>
-        </div>
+  return (
+    <div style={{ padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' }}>
+      <div>
+        <input
+          type="checkbox"
+          style={{ marginRight: 5 }}
+          checked={createStickyComment}
+          name="createStickyComment"
+          id="createStickyComment"
+          onChange={toggleCreateStickyComment}
+        />
+        <label for="createStickyComment">Add sticky rule reminder</label>
       </div>
-    );
-  }
+
+      <div>
+        <input
+          type="checkbox"
+          style={{ marginRight: 5, marginTop: 5 }}
+          checked={sendModmail}
+          name="sendModmail"
+          id="sendModmail"
+          onChange={toggleSendModmail}
+        />
+        <label for="sendModmail">Update modmail</label>
+      </div>
+
+      <div style={{ marginTop: 10 }}>
+        <a className="pretty-button neutral" onClick={onHide} href="#" disabled={isLoading}>
+          Cancel
+        </a>
+        <a className="pretty-button positive" onClick={handleApproval} href="#" disabled={isLoading}>
+          {!isLoading ? 'Approve post' : 'Approving...'}
+        </a>
+      </div>
+    </div>
+  );
 }
