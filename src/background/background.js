@@ -53,7 +53,14 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       url: authPageUrl,
       interactive: true,
     }, url => {
-      const code = new URLSearchParams(url).get('code');
+      let code = new URLSearchParams(url).get('code');
+
+      // The reddit /authorize endpoint has started tacking on some weird characters at the end of the url returned
+      // in the auth flow, leading to an invalid token. Strip those characters out.
+      if (code.endsWith('#_')) {
+        code = code.slice(0, -2);
+      }
+
       const authForm = new URLSearchParams();
       authForm.set('code', code);
       authForm.set('redirect_uri', redirectUri);
