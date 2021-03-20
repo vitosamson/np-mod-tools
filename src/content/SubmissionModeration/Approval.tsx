@@ -3,8 +3,8 @@ import * as utils from '../utils';
 
 interface Props {
   show: boolean;
-  onHide: (e: Event) => any;
-  onApprove: (errors?: string[]) => any;
+  onHide: (e: Event) => void;
+  onApprove: (errors?: string[]) => void;
 }
 
 interface State {
@@ -20,38 +20,35 @@ export default class Approval extends Component<Props, State> {
     loading: false,
   };
 
-  approvePost = () => {
+  approvePost = async () => {
     const { createStickyComment, sendModmail } = this.state;
     const { onApprove } = this.props;
     const errors: string[] = [];
     this.setState({ loading: true });
 
-    utils
-      .approvePost()
-      .then(() => {
-        return Promise.all([
-          utils.flairPost('').catch(err => {
-            errors.push('Could not remove flair');
-          }),
-          sendModmail
-            ? utils.updateModmail('Approved').catch(err => {
-                errors.push('Could not update modmail');
-              })
-            : null,
-          createStickyComment
-            ? utils.postSubmissionSticky().catch(err => {
-                errors.push('Could not post sticky comment');
-              })
-            : null,
-        ]);
-      })
-      .catch(err => {
-        errors.push('Could not approve post');
-      })
-      .then(() => {
-        onApprove(errors.length ? errors : null);
-        this.setState({ loading: false });
-      });
+    try {
+      await utils.approvePost();
+      await Promise.all([
+        utils.flairPost('').catch(err => {
+          errors.push('Could not remove flair');
+        }),
+        sendModmail
+          ? utils.updateModmail('Approved').catch(err => {
+              errors.push('Could not update modmail');
+            })
+          : null,
+        createStickyComment
+          ? utils.postSubmissionSticky().catch(err => {
+              errors.push('Could not post sticky comment');
+            })
+          : null,
+      ]);
+    } catch (err) {
+      errors.push('Could not approve post');
+    } finally {
+      onApprove(errors.length ? errors : null);
+      this.setState({ loading: false });
+    }
   };
 
   render() {

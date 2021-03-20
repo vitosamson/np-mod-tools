@@ -3,8 +3,8 @@ import * as utils from '../utils';
 
 interface Props {
   show: boolean;
-  onHide: (e: Event) => any;
-  onRFE: (errors?: string[]) => any;
+  onHide: (e: Event) => void;
+  onRFE: (errors?: string[]) => void;
 }
 
 interface State {
@@ -18,14 +18,14 @@ export default class RFE extends Component<Props, State> {
     loading: false,
   };
 
-  rfePost = (e: Event) => {
+  rfePost = async (e: Event) => {
     e.preventDefault();
     const { onRFE } = this.props;
     const { sendModmail } = this.state;
     const errors: string[] = [];
     this.setState({ loading: true });
 
-    Promise.all([
+    await Promise.all([
       utils.flairPost('RFE').catch(err => {
         errors.push('Could not update flair');
       }),
@@ -34,10 +34,10 @@ export default class RFE extends Component<Props, State> {
             errors.push('Could not update modmail');
           })
         : null,
-    ]).then(() => {
-      onRFE(errors.length ? errors : null);
-      this.setState({ loading: false });
-    });
+    ]);
+
+    onRFE(errors.length ? errors : null);
+    this.setState({ loading: false });
   };
 
   render() {

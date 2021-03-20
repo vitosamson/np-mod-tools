@@ -4,8 +4,8 @@ import * as utils from '../utils';
 interface Props {
   show: boolean;
   rules: utils.SubredditRule[];
-  onHide: (e: Event) => any;
-  onReject: (errors?: string[]) => any;
+  onHide: (e: Event) => void;
+  onReject: (errors?: string[]) => void;
 }
 
 interface SelectedReasons {
@@ -72,7 +72,7 @@ export default class Rejection extends Component<Props, State> {
     });
   };
 
-  confirmRejection = (e: Event) => {
+  confirmRejection = async (e: Event) => {
     e.preventDefault();
     const { selectedReasons, postComment, sendModmail, removeFromQueue } = this.state;
     const { onReject } = this.props;
@@ -86,7 +86,7 @@ export default class Rejection extends Component<Props, State> {
       const errors: string[] = [];
       this.setState({ loading: true });
 
-      Promise.all([
+      await Promise.all([
         utils.flairPost(flair).catch(err => {
           errors.push('Could not flair post');
         }),
@@ -105,17 +105,17 @@ export default class Rejection extends Component<Props, State> {
               errors.push('Could not remove post from queue');
             })
           : null,
-      ]).then(() => {
-        onReject(errors.length ? errors : null);
-        this.setState({ loading: false });
+      ]);
 
-        if (!postComment) {
-          const textarea = document.querySelector('.commentarea textarea') as HTMLTextAreaElement;
-          textarea.value = rejectionComment;
-          textarea.style.height = '440px';
-          textarea.focus();
-        }
-      });
+      onReject(errors.length ? errors : null);
+      this.setState({ loading: false });
+
+      if (!postComment) {
+        const textarea = document.querySelector('.commentarea textarea') as HTMLTextAreaElement;
+        textarea.value = rejectionComment;
+        textarea.style.height = '440px';
+        textarea.focus();
+      }
     }
   };
 

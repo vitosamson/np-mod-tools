@@ -1,5 +1,5 @@
 import * as marked from 'marked';
-import { renderStickyComment } from './SubmissionModeration/StickyComment';
+import { renderStickyComment, CommentResponse } from './SubmissionModeration/StickyComment';
 
 marked.setOptions({
   gfm: true,
@@ -20,7 +20,7 @@ const formContentType = 'application/x-www-form-urlencoded';
 export function fetch(input: RequestInfo, init?: RequestInit) {
   return window.fetch(input, init).then(res => {
     if (!res.ok) {
-      console.error(res);
+      console.error(res.json());
       throw res;
     }
     return res;
@@ -30,8 +30,13 @@ export function fetch(input: RequestInfo, init?: RequestInit) {
 /**
  * Make an oauth authorized reddit api call
  */
-export function makeOauthCall(url: string, method = 'GET', payload?: any, headers?: object) {
-  return fetch(url, {
+export async function makeOauthCall<TResponse>(
+  url: string,
+  method = 'GET',
+  payload?: any,
+  headers?: object
+): Promise<TResponse> {
+  const res = await fetch(url, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -40,6 +45,7 @@ export function makeOauthCall(url: string, method = 'GET', payload?: any, header
     credentials: 'same-origin',
     body: payload,
   });
+  return res.json();
 }
 
 /**
@@ -168,46 +174,40 @@ export interface NormalizedModmailMessage {
 /**
  * Gets the modmail messages for the submission
  */
-export function getModmailReplies(): Promise<NormalizedModmailMessage[]> {
+export async function getModmailReplies(): Promise<NormalizedModmailMessage[]> {
   const messageId = getModmailMessageId();
 
   if (useNewModmail) {
-    return makeOauthCall(`https://oauth.reddit.com/api/mod/conversations/${messageId}`)
-      .then(res => res.json())
-      .then((res: NewModmailResponse) => {
-        const replies = Object.keys(res.messages)
-          .map(id => res.messages[id])
-          .sort((a, b) => {
-            return a.date.localeCompare(b.date);
-          })
-          .filter(reply => reply.author.name !== 'AutoModerator')
-          .map(reply => ({
-            from: reply.author.name,
-            body: markdownToHtml(reply.bodyMarkdown),
-            created: new Date(reply.date),
-            id: reply.id,
-          }));
-        return replies;
-      });
+    const res = await makeOauthCall<NewModmailResponse>(`https://oauth.reddit.com/api/mod/conversations/${messageId}`);
+    const replies = Object.keys(res.messages)
+      .map(id => res.messages[id])
+      .sort((a, b) => {
+        return a.date.localeCompare(b.date);
+      })
+      .filter(reply => reply.author.name !== 'AutoModerator')
+      .map(reply => ({
+        from: reply.author.name,
+        body: markdownToHtml(reply.bodyMarkdown),
+        created: new Date(reply.date),
+        id: reply.id,
+      }));
+    return replies;
   } else {
-    return makeOauthCall(`https://oauth.reddit.com/message/messages/${messageId}`)
-      .then(res => res.json())
-      .then((res: OldModmailResponse) => {
-        const automodMessage = res.data.children[0].data;
-        if (typeof automodMessage.replies === 'string') {
-          return [];
-        } else {
-          const replies = automodMessage.replies.data.children
-            .sort((a, b) => a.data.created - b.data.created)
-            .map(child => ({
-              from: child.data.author,
-              body: markdownToHtml(child.data.body),
-              created: new Date(child.data.created_utc * 1000),
-              id: child.data.id,
-            }));
-          return replies;
-        }
-      });
+    const res = await makeOauthCall<OldModmailResponse>(`https://oauth.reddit.com/message/messages/${messageId}`);
+    const automodMessage = res.data.children[0].data;
+    if (typeof automodMessage.replies === 'string') {
+      return [];
+    } else {
+      const replies = automodMessage.replies.data.children
+        .sort((a, b) => a.data.created - b.data.created)
+        .map(child => ({
+          from: child.data.author,
+          body: markdownToHtml(child.data.body),
+          created: new Date(child.data.created_utc * 1000),
+          id: child.data.id,
+        }));
+      return replies;
+    }
   }
 }
 
@@ -216,7 +216,7 @@ export function getModmailReplies(): Promise<NormalizedModmailMessage[]> {
  * @param  {string} flairText
  */
 export function updateDisplayedFlair(flairText: string) {
-  let flairEl = document.querySelector('.linkflairlabel');
+  let flairEl: HTMLElement = document.querySelector('.linkflairlabel');
 
   if (flairEl && !flairText) {
     flairEl.remove();
@@ -231,7 +231,7 @@ export function updateDisplayedFlair(flairText: string) {
     document.querySelector('.entry .title a').insertAdjacentElement('afterend', flairEl);
   }
 
-  (flairEl as HTMLElement).innerText = flairText;
+  flairEl.innerText = flairText;
 }
 
 /**
@@ -239,23 +239,21 @@ export function updateDisplayedFlair(flairText: string) {
  * @param  {string} flairText
  * @return {Promise}
  */
-export function flairPost(flairText: string) {
+export async function flairPost(flairText: string) {
   const form = new URLSearchParams();
   const sub = getSubreddit();
   form.set('link', getSubmissionId());
   form.set('text', flairText);
 
-  return makeOauthCall(`https://oauth.reddit.com/r/${sub}/api/flair`, 'POST', form, {
+  const res = await makeOauthCall<{ success: boolean }>(`https://oauth.reddit.com/r/${sub}/api/flair`, 'POST', form, {
     'content-type': formContentType,
-  })
-    .then(res => res.json())
-    .then(res => {
-      if (!res.success) {
-        throw new Error();
-      }
+  });
 
-      updateDisplayedFlair(flairText);
-    });
+  if (!res.success) {
+    throw new Error(`Unable to flair post: ${res}`);
+  }
+
+  updateDisplayedFlair(flairText);
 }
 
 /**
@@ -376,46 +374,42 @@ export interface SubredditRule {
  * @param  {string} [kind='link'] the type of rules to return. we're typically only interested in links here
  * @return {Promise<SubredditRule[]>}
  */
-export function getRules(kind: RuleKind = 'link') {
+export async function getRules(kind: RuleKind = 'link') {
   const sub = getSubreddit();
-
-  return fetch(`https://reddit.com/r/${sub}/about/rules.json`, {
+  const res = await fetch(`https://www.reddit.com/r/${sub}/about/rules.json`, {
     mode: 'no-cors',
-  })
-    .then(res => res.json())
-    .then((res: { rules: SubredditRule[] }) => {
-      const rules = res.rules.filter(rule => rule.kind === kind);
-      return rules;
-    });
+  });
+  const json: { rules: SubredditRule[] } = await res.json();
+
+  return json.rules.filter(rule => rule.kind === kind);
 }
 
 /**
- * Posts a new comment in the thread
- * @param  {string} content
- * @return {Promise<string>} promise that resolves with the comment ID
+ * Posts a new comment in the thread and returns the comment ID.
  */
-export function postComment(content: string) {
-  // TODO: URLSearchParams is not supported in Opera, so replace or polyfill it
+export async function postComment(content: string) {
   const form = new URLSearchParams();
   form.set('text', content);
   form.set('parent', getSubmissionId());
   form.set('api_type', 'json');
 
-  return makeOauthCall('https://oauth.reddit.com/api/comment', 'POST', form, {
-    'content-type': formContentType,
-  })
-    .then(res => res.json())
-    .then(res => {
-      return res.json.data.things[0].data.name;
-    });
+  const res = await makeOauthCall<{ json: { data: { things: Array<{ data: CommentResponse }> } } }>(
+    'https://oauth.reddit.com/api/comment',
+    'POST',
+    form,
+    {
+      'content-type': formContentType,
+    }
+  );
+  return res.json.data.things[0].data.name;
 }
 
 /**
  * Distinguishes and stickies a comment
- * @param  {string} commentId
- * @return {Promise}
  */
-export function stickyComment(commentId: string) {
+export function stickyComment(
+  commentId: string
+): Promise<{ json: { data: { things: Array<{ data: CommentResponse }> } } }> {
   const form = new URLSearchParams();
   form.set('id', commentId);
   form.set('how', 'yes');
@@ -432,35 +426,23 @@ export function stickyComment(commentId: string) {
  * @param  {string} body
  * @return {Promise}
  */
-export function postStickyComment(body: string) {
-  return postComment(body)
-    .then(commentId => {
-      return stickyComment(commentId);
-    })
-    .then(res => res.json())
-    .then(res => {
-      const commentResponse = res.json.data.things[0].data;
-      renderStickyComment(commentResponse);
-    })
-    .catch(err => {
-      console.log(err);
-      throw err;
-    });
+export async function postStickyComment(body: string) {
+  const commentId = await postComment(body);
+  const commentResponse = await stickyComment(commentId);
+  renderStickyComment(commentResponse.json.data.things[0].data);
 }
 
 /**
  * Gets the submission sticky from the sub's wiki, then posts it as a distinguished sticky comment on the thread
  * @return {Promise}
  */
-export function postSubmissionSticky() {
+export async function postSubmissionSticky() {
   const sub = getSubreddit();
-
-  return makeOauthCall(`https://oauth.reddit.com/r/${sub}/wiki/submission_sticky.json`)
-    .then(res => res.json())
-    .then(res => {
-      const sticky = res.data.content_md;
-      return postStickyComment(sticky);
-    });
+  const res = await makeOauthCall<{ data: { content_md: string } }>(
+    `https://oauth.reddit.com/r/${sub}/wiki/submission_sticky.json`
+  );
+  const sticky = res.data.content_md;
+  return postStickyComment(sticky);
 }
 
 /**

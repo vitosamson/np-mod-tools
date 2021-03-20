@@ -31,39 +31,35 @@ export default class SubmissionModeration extends Component<{}, State> {
     modmailReplies: [],
   };
 
-  componentDidMount() {
-    utils.getAccessToken().then(() => {
-      this.getModmailReplies();
-      utils
-        .getRules()
-        .then(rules => {
-          this.setState({ rules });
-        })
-        .catch(err => {
-          console.error('could not get rules', err);
-        });
-    });
-  }
+  componentDidMount = async () => {
+    await utils.getAccessToken();
+    this.getModmailReplies();
 
-  getModmailReplies() {
-    utils
-      .getModmailReplies()
-      .then(modmailReplies => {
-        this.setState({ modmailReplies });
-      })
-      .catch(err => {
-        console.error('could not get modmail replies', err);
-        this.setState({
-          feedback: [
-            ...this.state.feedback,
-            {
-              type: 'error',
-              message: 'Could not fetch modmail messages',
-            },
-          ],
-        });
+    try {
+      const rules = await utils.getRules();
+      this.setState({ rules });
+    } catch (err) {
+      console.error('could not get rules', err);
+    }
+  };
+
+  getModmailReplies = async () => {
+    try {
+      const modmailReplies = await utils.getModmailReplies();
+      this.setState({ modmailReplies });
+    } catch (err) {
+      console.error('could not get modmail replies', err);
+      this.setState({
+        feedback: [
+          ...this.state.feedback,
+          {
+            type: 'error',
+            message: 'Could not fetch modmail messages',
+          },
+        ],
       });
-  }
+    }
+  };
 
   toggleRejection = (e: Event) => {
     if (e) e.preventDefault();

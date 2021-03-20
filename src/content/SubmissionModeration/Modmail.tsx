@@ -1,11 +1,10 @@
 import { Component } from 'preact';
-
 import * as utils from '../utils';
 
 interface Props {
   show: boolean;
-  onHide: (e: Event) => any;
-  onSend: (errors?: string[]) => any;
+  onHide: (e: Event) => void;
+  onSend: (errors?: string[]) => void;
   replies: utils.NormalizedModmailMessage[];
 }
 
@@ -41,7 +40,7 @@ export default class Modmail extends Component<Props, State> {
     }
   };
 
-  sendMessage = (e: Event) => {
+  sendMessage = async (e: Event) => {
     e.preventDefault();
     const { onSend } = this.props;
     const { message } = this.state;
@@ -49,23 +48,14 @@ export default class Modmail extends Component<Props, State> {
     if (!message) return;
     this.setState({ loading: true });
 
-    utils
-      .updateModmail(message)
-      .then(() => {
-        this.setState(
-          () => ({
-            message: '',
-            error: false,
-          }),
-          onSend
-        );
-      })
-      .catch(err => {
-        this.setState({ error: true });
-      })
-      .then(() => {
-        this.setState({ loading: false });
-      });
+    try {
+      await utils.updateModmail(message);
+      this.setState({ message: '', error: false }, () => onSend());
+    } catch (err) {
+      this.setState({ error: true });
+    } finally {
+      this.setState({ loading: false });
+    }
   };
 
   render() {

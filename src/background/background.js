@@ -7,6 +7,9 @@ const scopes = ['modflair', 'modmail', 'modposts', 'submit', 'privatemessages', 
 // bad token values sometimes get stored to localStorage
 const checkValidToken = token => token && token !== 'undefined' && token !== 'null';
 
+/**
+ * Note: this listener can't be an async function since it must return a boolean, not a Promise<boolean>.
+ */
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.action === 'oauth') {
     const token = localStorage.getItem('np-mod-token');
@@ -26,9 +29,9 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         body: form,
       })
         .then(res => res.json())
-        .then(res => {
-          localStorage.setItem('np-mod-token', res.access_token);
-          sendResponse(res.access_token);
+        .then(json => {
+          localStorage.setItem('np-mod-token', json.access_token);
+          sendResponse(json.access_token);
         });
 
       return true;
@@ -49,7 +52,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         url: authPageUrl,
         interactive: true,
       },
-      url => {
+      async url => {
         let code = new URLSearchParams(url).get('code');
 
         // The reddit /authorize endpoint has started tacking on some weird characters at the end of the url returned
@@ -63,20 +66,19 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         authForm.set('redirect_uri', redirectUri);
         authForm.set('grant_type', 'authorization_code');
 
-        fetch(tokenUrl, {
+        const res = await fetch(tokenUrl, {
           method: 'POST',
           headers: {
             Authorization: basicAuth,
             'content-type': 'application/x-www-form-urlencoded',
           },
           body: authForm,
-        })
-          .then(res => res.json())
-          .then(res => {
-            localStorage.setItem('np-mod-token', res.access_token);
-            localStorage.setItem('np-mod-refresh-token', res.refresh_token);
-            sendResponse(res.access_token);
-          });
+        });
+        const json = await res.json();
+
+        localStorage.setItem('np-mod-token', json.access_token);
+        localStorage.setItem('np-mod-refresh-token', json.refresh_token);
+        sendResponse(json.access_token);
       }
     );
 

@@ -1,6 +1,6 @@
 import { render } from 'preact';
 
-interface CommentResponse {
+export interface CommentResponse {
   name: string;
   author: string;
   body_html: string;
