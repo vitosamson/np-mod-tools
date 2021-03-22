@@ -22,7 +22,7 @@ const createRejectionComment = (ruleLetters: string[]) => {
   if (multipleRules) {
     const lastLetter = ruleLetters[ruleLetters.length - 1];
     formattedRuleLetters = ruleLetters.slice(0, ruleLetters.length - 1).join(', ');
-    formattedRuleLetters = `${ruleLetters} and ${lastLetter}`;
+    formattedRuleLetters = `${formattedRuleLetters} and ${lastLetter}`;
   } else {
     formattedRuleLetters = ruleLetters.join('');
   }
