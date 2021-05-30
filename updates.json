@@ -21,6 +21,10 @@
         {
           "version": "1.7.1",
           "update_link": "https://github.com/vitosamson/np-mod-tools/releases/download/1.7.1/np_mod_helper-1.7.1-fx.xpi"
+        },
+        {
+          "version": "2.0.0",
+          "update_link": "https://github.com/vitosamson/np-mod-tools/releases/download/2.0.0/np_mod_helper-2.0.0-fx.xpi"
         }
       ]
     }
