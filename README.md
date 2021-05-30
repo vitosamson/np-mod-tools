@@ -7,18 +7,18 @@ This browser extension adds some additional utilities for /r/NeutralPolitics mod
 ### Submission tools
 
 #### Approve button
-The approve button will approve the post, remove any flair and update the modmail thread. Optionally it will post the reminder sticky comment (on by default).
+The approve button will approve the post, remove any flair and update the Slack thread. Optionally it will post the reminder sticky comment (on by default).
 
 #### RFE button
-The RFE button will simply add the `RFE` flair to the post and update the modmail thread.
+The RFE button will simply add the `RFE` flair to the post and update the Slack thread.
 
 TODO: maybe present the rules here as well, to specify what the RFE is for?
 
 #### Reject button
-The reject button will present the mod with a list of submission rules for the sub. Once the appropriate rules are selected, the post will be flaired and modmail updated.
+The reject button will present the mod with a list of submission rules for the sub. Once the appropriate rules are selected, the post will be flaired and Slack updated.
 
-#### Modmail button
-Shows the modmail responses for the submission and allows you to quickly send a new response.
+#### Slack button
+Shows the responses in the Slack thread for the submission and allows you to quickly send a new response.
 
 ## Permissions
 The first time the extension runs, it'll ask you to give it a number of permissions on your reddit account. Here's what each permission is needed for:
@@ -35,7 +35,7 @@ The first time the extension runs, it'll ask you to give it a number of permissi
 
 The extension makes a number of assumptions which makes it pretty much useful only on /r/NeutralPolitics.
 
-  - the TrackbackLinkBot needs to be working in order to pick up the modmail thread ID from the submission page
+  - the NeutralverseBot needs to be working in order to pick up the Slack thread link from the submission page
   - the rules on /about/rules need to be present
   - the sticky approval comment needs to be available at /wiki/submission_sticky
 
