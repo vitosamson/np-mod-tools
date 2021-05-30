@@ -1,13 +1,16 @@
 import { render } from 'preact';
 import SubmissionModeration from './SubmissionModeration';
-import { isMod, getSubreddit, getSubmissionId, getModmailMessageId, isCommentsPage } from '../utils';
+import { isMod, getSubreddit, getSubmissionId, isCommentsPage } from '../utils';
+import { getSlackToken } from '../slack';
 
-export default function mountSubmissionModeration() {
+export default async function mountSubmissionModeration() {
   const submissionEl = document.querySelector('.linklisting .link.self');
 
   if (!isMod() || !isCommentsPage() || !submissionEl) {
     return;
   }
+
+  await getSlackToken();
 
   const moderationWrapper = document.createElement('div');
   submissionEl.querySelector('.entry')?.appendChild(moderationWrapper);
@@ -16,5 +19,4 @@ export default function mountSubmissionModeration() {
 
   console.log('subreddit', getSubreddit());
   console.log('submission id', getSubmissionId());
-  console.log('modmail message id', getModmailMessageId());
 }

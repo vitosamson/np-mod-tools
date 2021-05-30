@@ -8,3 +8,12 @@ export interface ThingData {
   mod_reports_dismissed?: ModReport[];
   ignore_reports: boolean;
 }
+
+export interface SlackMessage {
+  text: string;
+  user: string;
+  ts: string;
+  bot_profile?: {
+    name: string;
+  };
+}

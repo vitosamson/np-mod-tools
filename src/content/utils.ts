@@ -10,9 +10,6 @@ marked.setOptions({
 let token = '';
 let subreddit = '';
 let submissionId = '';
-let modmailMessageId = '';
-let modmailMessageLink = '';
-let useNewModmail = false;
 
 const formContentType = 'application/x-www-form-urlencoded';
 
@@ -37,6 +34,8 @@ export async function makeOauthCall<TResponse>(
   payload?: any,
   headers?: object
 ): Promise<TResponse> {
+  await getAccessToken();
+
   const res = await fetch(url, {
     method,
     headers: {
@@ -81,136 +80,6 @@ export function getSubreddit() {
   if (subreddit) return subreddit;
   subreddit = window.location.href.match(/\/r\/(\w+)\//)![1];
   return subreddit;
-}
-
-/**
- * Tries to find the TrackbackLinkBot comment in the current thread and returns the link.
- */
-export function getModmailMessageLink() {
-  if (modmailMessageLink) return modmailMessageLink;
-  const oldModmailPattern = 'a[href^="https://www.reddit.com/message/messages"]';
-  const newModmailPattern = 'a[href^="https://mod.reddit.com"]';
-  const trackbackComment = Array.from(document.querySelectorAll('.nestedlisting .comment')).find(
-    c => !!c.querySelector(oldModmailPattern) || !!c.querySelector(newModmailPattern)
-  );
-  let trackbackLink: HTMLElement;
-
-  if (!trackbackComment) {
-    return '';
-  }
-
-  if (trackbackComment.querySelector(oldModmailPattern)) {
-    trackbackLink = trackbackComment.querySelector(oldModmailPattern) as HTMLElement;
-    useNewModmail = false;
-  } else if (trackbackComment.querySelector(newModmailPattern)) {
-    trackbackLink = trackbackComment.querySelector(newModmailPattern) as HTMLElement;
-    useNewModmail = true;
-  } else {
-    return null;
-  }
-
-  modmailMessageLink = trackbackLink.innerText;
-  return modmailMessageLink;
-}
-
-/**
- * Parses the modmail message ID from the TrackbackLinkBot comment and returns it.
- */
-export function getModmailMessageId() {
-  if (modmailMessageId) return modmailMessageId;
-  const trackbackLink = getModmailMessageLink();
-
-  if (trackbackLink) {
-    modmailMessageId = trackbackLink.slice(trackbackLink.lastIndexOf('/') + 1);
-  }
-
-  return modmailMessageId;
-}
-
-interface NewModMailMessage {
-  date: string;
-  author: {
-    name: string;
-  };
-  bodyMarkdown: string;
-  id: string;
-}
-
-interface NewModmailResponse {
-  messages: {
-    [id: string]: NewModMailMessage;
-  };
-}
-
-interface OldModmailMessage {
-  data: {
-    author: string;
-    body: string;
-    created: number;
-    created_utc: number;
-    id: string;
-    replies:
-      | string
-      | {
-          // this may be an empty string if there are no replies - seems to be a reddit bug
-          data: {
-            children: OldModmailMessage[];
-          };
-        };
-  };
-}
-
-interface OldModmailResponse {
-  data: {
-    children: OldModmailMessage[];
-  };
-}
-
-export interface NormalizedModmailMessage {
-  from: string;
-  body: string;
-  created: Date;
-  id: string;
-}
-
-/**
- * Gets the modmail messages for the submission
- */
-export async function getModmailReplies(): Promise<NormalizedModmailMessage[]> {
-  const messageId = getModmailMessageId();
-
-  if (useNewModmail) {
-    const res = await makeOauthCall<NewModmailResponse>(`https://oauth.reddit.com/api/mod/conversations/${messageId}`);
-    const replies = Object.keys(res.messages)
-      .map(id => res.messages[id])
-      .sort((a, b) => {
-        return a.date.localeCompare(b.date);
-      })
-      .filter(reply => reply.author.name !== 'AutoModerator')
-      .map(reply => ({
-        from: reply.author.name,
-        body: markdownToHtml(reply.bodyMarkdown),
-        created: new Date(reply.date),
-        id: reply.id,
-      }));
-    return replies;
-  } else {
-    const res = await makeOauthCall<OldModmailResponse>(`https://oauth.reddit.com/message/messages/${messageId}`);
-    const automodMessage = res.data.children[0].data;
-    if (typeof automodMessage.replies === 'string') {
-      return [];
-    } else {
-      const replies = automodMessage.replies.data.children
-        .sort((a, b) => a.data.created - b.data.created)
-        .map(child => ({
-          from: child.data.author,
-          body: markdownToHtml(child.data.body),
-          created: new Date(child.data.created_utc * 1000),
-          id: child.data.id,
-        }));
-      return replies;
-    }
-  }
 }
 
 /**
@@ -278,30 +147,6 @@ export function postAlreadyApproved() {
 export function postAlreadyRFEd() {
   const flair = document.querySelector('.linkflairlabel') as HTMLElement;
   return flair && /RFE/.test(flair.innerText);
-}
-
-/**
- * Sends a modmail message
- */
-export function updateModmail(message: string) {
-  const messageId = getModmailMessageId();
-  const form = new URLSearchParams();
-  let url: string;
-
-  if (useNewModmail) {
-    form.set('body', message);
-    url = `https://oauth.reddit.com/api/mod/conversations/${messageId}`;
-  } else {
-    form.set('text', message);
-    form.set('parent', `t4_${messageId}`);
-
-    // old modmail uses the same api as comments
-    url = 'https://oauth.reddit.com/api/comment';
-  }
-
-  return makeOauthCall(url, 'POST', form, {
-    'content-type': formContentType,
-  });
 }
 
 /**
@@ -474,4 +319,8 @@ export function useToggleState(defaultState: boolean): [boolean, () => void] {
   const [state, setState] = useState(defaultState);
   const toggleState = useCallback(() => setState(!state), [state]);
   return [state, toggleState];
+}
+
+export function getCurrentUser() {
+  return document.querySelector('.user > a[href*="/user/"]')?.textContent;
 }

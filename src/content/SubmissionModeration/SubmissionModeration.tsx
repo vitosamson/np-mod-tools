@@ -2,19 +2,18 @@ import { useEffect, useState } from 'preact/hooks';
 import Approval from './Approval';
 import RFE from './RFE';
 import Rejection from './Rejection';
-import Modmail from './Modmail';
+import Slack from './Slack';
 import {
   getAccessToken,
-  getModmailReplies,
   getRules,
   useToggleState,
   postAlreadyApproved,
   postAlreadyRFEd,
   postAlreadyRejected,
-  getModmailMessageLink,
   SubredditRule,
-  NormalizedModmailMessage,
 } from '../utils';
+import { SlackMessage } from '../types';
+import { getSlackThread, getSlackThreadReplies } from '../slack';
 
 interface Feedback {
   type: string;
@@ -26,24 +25,24 @@ export default function SubmissionModeration() {
   const [showApproval, toggleShowApproval] = useToggleState(false);
   const [showRFE, toggleShowRFE] = useToggleState(false);
   const [showRejection, toggleShowRejection] = useToggleState(false);
-  const [showModmail, toggleShowModmail] = useToggleState(false);
+  const [showSlack, toggleShowSlack] = useToggleState(false);
   const [feedback, setFeedback] = useState<Feedback[]>([]);
-  const [modmailReplies, setModmailReplies] = useState<NormalizedModmailMessage[]>([]);
+  const [slackReplies, setSlackReplies] = useState<SlackMessage[]>([]);
   const isApproved = postAlreadyApproved();
   const isRFEd = postAlreadyRFEd();
   const isRejected = postAlreadyRejected();
-  const modmailMessageLink = getModmailMessageLink();
+  const { link: slackLink } = getSlackThread();
 
-  const _getModmailReplies = async () => {
+  const _getSlackReplies = async () => {
     try {
-      setModmailReplies(await getModmailReplies());
+      setSlackReplies(await getSlackThreadReplies());
     } catch (err) {
-      console.error('could not get modmail replies', err);
+      console.error('Could not get slack replies', err);
       setFeedback([
         ...feedback,
         {
           type: 'error',
-          message: 'Could not fetch modmail messages',
+          message: 'Could not get slack replies',
         },
       ]);
     }
@@ -52,7 +51,7 @@ export default function SubmissionModeration() {
   useEffect(() => {
     (async () => {
       await getAccessToken();
-      _getModmailReplies();
+      _getSlackReplies();
 
       try {
         setRules(await getRules());
@@ -71,7 +70,7 @@ export default function SubmissionModeration() {
         }))
       );
     } else {
-      _getModmailReplies();
+      _getSlackReplies();
       toggleShowRejection();
       setFeedback([
         {
@@ -91,7 +90,7 @@ export default function SubmissionModeration() {
         }))
       );
     } else {
-      _getModmailReplies();
+      _getSlackReplies();
       toggleShowApproval();
       setFeedback([
         {
@@ -102,8 +101,8 @@ export default function SubmissionModeration() {
     }
   };
 
-  const handleSentModmail = () => {
-    _getModmailReplies();
+  const handleSentSlackMessage = () => {
+    _getSlackReplies();
   };
 
   const handleRFE = (errors: string[]) => {
@@ -115,7 +114,7 @@ export default function SubmissionModeration() {
         }))
       );
     } else {
-      _getModmailReplies();
+      _getSlackReplies();
       toggleShowRFE();
       setFeedback([
         {
@@ -146,18 +145,18 @@ export default function SubmissionModeration() {
         </a>
       )}
 
-      {modmailMessageLink && (
-        <a href="#" className="pretty-button" onClick={toggleShowModmail}>
-          Modmail [{(modmailReplies && modmailReplies.length) || '0'}]
+      {slackLink ? (
+        <a href="#" className="pretty-button" onClick={toggleShowSlack}>
+          Slack [{slackReplies.length || '0'}]
         </a>
+      ) : (
+        <span style={{ marginLeft: 5, color: 'orange' }}>No slack link was found</span>
       )}
-
-      {!modmailMessageLink && <span style={{ marginLeft: 5, color: 'orange' }}>No trackback comment was found</span>}
 
       <Approval show={showApproval} onHide={toggleShowApproval} onApprove={handleApproval} />
       <RFE show={showRFE} onHide={toggleShowRFE} onRFE={handleRFE} />
       <Rejection show={showRejection} onHide={toggleShowRejection} onReject={handleRejection} rules={rules} />
-      <Modmail show={showModmail} onHide={toggleShowModmail} onSend={handleSentModmail} replies={modmailReplies} />
+      <Slack show={showSlack} onHide={toggleShowSlack} onSend={handleSentSlackMessage} replies={slackReplies} />
 
       {feedback.map(f => (
         <div

@@ -1,5 +1,7 @@
 import { useState } from 'preact/hooks';
-import { flairPost, updateModmail, useToggleState } from '../utils';
+import { flairPost, getCurrentUser } from '../utils';
+import * as slack from '../slack';
+import { PrivateSlackNoteInput } from './common';
 
 interface Props {
   show: boolean;
@@ -8,12 +10,17 @@ interface Props {
 }
 
 export default function RFE({ show, onHide, onRFE }: Props) {
-  const [sendModmail, toggleSendModmail] = useToggleState(true);
+  const [slackNote, setSlackNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRfe = async (evt: MouseEvent) => {
     evt.preventDefault();
     const errors: string[] = [];
+    let slackMessage = `RFE'd by ${getCurrentUser()}`;
+
+    if (slackNote) {
+      slackMessage = `${slackMessage}\n\n> ${slackNote}`;
+    }
 
     setIsLoading(true);
 
@@ -21,11 +28,11 @@ export default function RFE({ show, onHide, onRFE }: Props) {
       flairPost('RFE').catch(err => {
         errors.push('Could not update flair');
       }),
-      sendModmail
-        ? updateModmail('RFE').catch(err => {
-            errors.push('Could not update modmail');
-          })
-        : null,
+      slack.postSlackThreadResponse(slackMessage).catch(() => errors.push('Could not post slack thread response')),
+      // removing an emoji that isn't added will error, just ignore it
+      slack.removeSlackThreadEmoji(slack.emojis.approval).catch(() => {}),
+      slack.removeSlackThreadEmoji(slack.emojis.rejection).catch(() => {}),
+      slack.addSlackThreadEmoji(slack.emojis.rfe).catch(() => errors.push('Could not add slack emoji')),
     ]);
 
     onRFE(errors);
@@ -38,17 +45,7 @@ export default function RFE({ show, onHide, onRFE }: Props) {
 
   return (
     <div style={{ padding: '10px 20px', fontSize: '1.2em', border: '1px solid #ccc' }}>
-      <div>
-        <input
-          type="checkbox"
-          checked={sendModmail}
-          onChange={toggleSendModmail}
-          name="sendModmail"
-          id="sendModmail"
-          style={{ marginRight: 5, marginTop: 10 }}
-        />
-        <label for="sendModmail">Update modmail</label>
-      </div>
+      <PrivateSlackNoteInput value={slackNote} onChange={setSlackNote} />
 
       <div style={{ marginTop: 15 }}>
         <a href="#" className="pretty-button neutral" onClick={onHide} disabled={isLoading}>

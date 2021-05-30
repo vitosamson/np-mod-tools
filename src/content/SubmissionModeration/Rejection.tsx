@@ -1,5 +1,7 @@
 import { useState } from 'preact/hooks';
-import { flairPost, updateModmail, postStickyComment, removePost, useToggleState, SubredditRule } from '../utils';
+import { flairPost, postStickyComment, removePost, useToggleState, getCurrentUser, SubredditRule } from '../utils';
+import * as slack from '../slack';
+import { PrivateSlackNoteInput } from './common';
 
 interface Props {
   show: boolean;
@@ -45,9 +47,9 @@ Thanks for understanding.
 export default function Rejection({ show, rules, onHide, onReject }: Props) {
   const [selectedReasons, setSelectedReasons] = useState<Set<string>>(new Set());
   const [postComment, togglePostComment] = useToggleState(true);
-  const [sendModmail, toggleSendModmail] = useToggleState(true);
   const [removeFromQueue, toggleRemoveFromQueue] = useToggleState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [slackNote, setSlackNote] = useState('');
 
   const toggleSelectedReason = (rule: string) => {
     if (selectedReasons.has(rule)) {
@@ -69,8 +71,12 @@ export default function Rejection({ show, rules, onHide, onReject }: Props) {
     const ruleLetters = getRuleLetters(selectedReasons);
     const rejectionComment = createRejectionComment(ruleLetters);
     const flair = `${ruleLetters.join(', ')}`;
-    const modmailMessage = `Rejected: ${flair}`;
     const errors: string[] = [];
+    let slackMessage = `Rejected by ${getCurrentUser()}: ${flair}`;
+
+    if (slackNote) {
+      slackMessage = `${slackMessage}\n\n> ${slackNote}`;
+    }
 
     setIsLoading(true);
 
@@ -78,11 +84,11 @@ export default function Rejection({ show, rules, onHide, onReject }: Props) {
       flairPost(flair).catch(err => {
         errors.push('Could not flair post');
       }),
-      sendModmail
-        ? updateModmail(modmailMessage).catch(err => {
-            errors.push('Could not update modmail');
-          })
-        : null,
+      slack.postSlackThreadResponse(slackMessage).catch(() => errors.push('Could not post slack thread response')),
+      // removing an emoji that isn't added will error, just ignore it
+      slack.removeSlackThreadEmoji(slack.emojis.approval).catch(() => {}),
+      slack.removeSlackThreadEmoji(slack.emojis.rfe).catch(() => {}),
+      slack.addSlackThreadEmoji(slack.emojis.rejection).catch(() => errors.push('Could not add slack emoji')),
       postComment
         ? postStickyComment(rejectionComment).catch(err => {
             errors.push('Could not post sticky comment');
@@ -152,17 +158,7 @@ export default function Rejection({ show, rules, onHide, onReject }: Props) {
         <label for="removeFromQueue">Remove post from queue</label>
       </div>
 
-      <div>
-        <input
-          type="checkbox"
-          checked={sendModmail}
-          onChange={toggleSendModmail}
-          name="sendModmail"
-          id="sendModmail"
-          style={{ marginRight: 5, marginTop: 5 }}
-        />
-        <label for="sendModmail">Update modmail</label>
-      </div>
+      <PrivateSlackNoteInput value={slackNote} onChange={setSlackNote} />
 
       <div style={{ marginTop: 15 }}>
         <a href="#" className="pretty-button neutral" onClick={onHide} disabled={isLoading}>

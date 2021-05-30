@@ -1,5 +1,7 @@
 import { useState } from 'preact/hooks';
-import { approvePost, flairPost, updateModmail, postSubmissionSticky, useToggleState } from '../utils';
+import { approvePost, flairPost, postSubmissionSticky, useToggleState, getCurrentUser } from '../utils';
+import * as slack from '../slack';
+import { PrivateSlackNoteInput } from './common';
 
 interface Props {
   show: boolean;
@@ -9,7 +11,7 @@ interface Props {
 
 export default function Approval({ show, onHide, onApprove }: Props) {
   const [createStickyComment, toggleCreateStickyComment] = useToggleState(true);
-  const [sendModmail, toggleSendModmail] = useToggleState(true);
+  const [slackNote, setSlackNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   if (!show) {
@@ -18,6 +20,12 @@ export default function Approval({ show, onHide, onApprove }: Props) {
 
   const handleApproval = async () => {
     const errors: string[] = [];
+    let slackMessage = `Approved by ${getCurrentUser()}`;
+
+    if (slackNote) {
+      slackMessage = `${slackMessage}\n\n> ${slackNote}`;
+    }
+
     setIsLoading(true);
 
     try {
@@ -26,11 +34,11 @@ export default function Approval({ show, onHide, onApprove }: Props) {
         flairPost('').catch(err => {
           errors.push('Could not remove flair');
         }),
-        sendModmail
-          ? updateModmail('Approved').catch(err => {
-              errors.push('Could not update modmail');
-            })
-          : null,
+        slack.postSlackThreadResponse(slackMessage).catch(() => errors.push('Could not post slack thread response')),
+        // removing an emoji that isn't added will error, just ignore it
+        slack.removeSlackThreadEmoji(slack.emojis.rejection).catch(() => {}),
+        slack.removeSlackThreadEmoji(slack.emojis.rfe).catch(() => {}),
+        slack.addSlackThreadEmoji(slack.emojis.approval).catch(() => errors.push('Could not add slack emoji')),
         createStickyComment
           ? postSubmissionSticky().catch(err => {
               errors.push('Could not post sticky comment');
@@ -59,17 +67,7 @@ export default function Approval({ show, onHide, onApprove }: Props) {
         <label for="createStickyComment">Add sticky rule reminder</label>
       </div>
 
-      <div>
-        <input
-          type="checkbox"
-          style={{ marginRight: 5, marginTop: 5 }}
-          checked={sendModmail}
-          name="sendModmail"
-          id="sendModmail"
-          onChange={toggleSendModmail}
-        />
-        <label for="sendModmail">Update modmail</label>
-      </div>
+      <PrivateSlackNoteInput value={slackNote} onChange={setSlackNote} />
 
       <div style={{ marginTop: 10 }}>
         <a className="pretty-button neutral" onClick={onHide} href="#" disabled={isLoading}>
