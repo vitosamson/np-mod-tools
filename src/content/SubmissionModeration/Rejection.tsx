@@ -33,8 +33,7 @@ const createRejectionComment = (ruleLetters: string[]) => {
   return `Hello there. I'm a mod in /r/NeutralPolitics.
 
 We appreciate your participation in the subreddit, but we did not approve this submission, because it doesn't conform to 
-our [submission rule(s)](http://www.reddit.com/r/NeutralPolitics/wiki/guidelines#wiki_submission_rules) Specifically,
-rule${multipleRules ? 's' : ''} ${formattedRuleLetters}.
+our [submission rule(s)](http://www.reddit.com/r/NeutralPolitics/wiki/guidelines#wiki_submission_rules) ${formattedRuleLetters}.
 
 If you'd like to submit a reworked version of your post after reviewing the rules, we'd be happy to consider it.
 
