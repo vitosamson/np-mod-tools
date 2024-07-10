@@ -10,7 +10,7 @@ const checkValidToken = token => token && token !== 'undefined' && token !== 'nu
 /**
  * Note: this listener can't be an async function since it must return a boolean, not a Promise<boolean>.
  */
-chrome.runtime.onMessage.addEventListener((req, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.action === 'oauth') {
     const token = localStorage.getItem('np-mod-token');
     const refreshToken = localStorage.getItem('np-mod-refresh-token');
